@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore'
 import { Badge } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Spinner'
 import PunchWidget from './PunchWidget'
+import MarkAbsentAsLeaveModal from './MarkAbsentAsLeaveModal'
 import { cn } from '@/lib/utils'
 
 const STATUS_COLOR = {
@@ -13,6 +14,7 @@ const STATUS_COLOR = {
   absent: 'bg-red-100 text-red-600',
   late: 'bg-amber-100 text-amber-700',
   half_day: 'bg-blue-100 text-blue-700',
+  on_leave: 'bg-purple-100 text-purple-700',
 }
 
 function getDaysInMonth(year, month) {
@@ -41,6 +43,8 @@ export default function AttendancePage() {
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth()) // 0-indexed
+  const [leaveModalRecord, setLeaveModalRecord] = useState(null)
+  const todayKey = new Date().toISOString().slice(0, 10)
 
   function prev() {
     if (month === 0) { setYear((y) => y - 1); setMonth(11) }
@@ -78,12 +82,13 @@ export default function AttendancePage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
           { label: 'Present', key: 'present', color: 'text-green-600' },
           { label: 'Absent', key: 'absent', color: 'text-red-500' },
           { label: 'Late', key: 'late', color: 'text-amber-600' },
           { label: 'Half Day', key: 'half_day', color: 'text-blue-600' },
+          { label: 'On Leave', key: 'on_leave', color: 'text-purple-600' },
         ].map(({ label, key, color }) => (
           <div key={key} className="rounded-xl border bg-white p-4 shadow-sm text-center">
             <p className={cn('text-2xl font-bold', color)}>{stats[key] ?? 0}</p>
@@ -163,15 +168,37 @@ export default function AttendancePage() {
                   {r.check_out ? new Date(r.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                 </p>
               </div>
-              <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium capitalize',
-                r.is_holiday ? 'bg-orange-100 text-orange-700' : STATUS_COLOR[r.status]
-              )}>
-                {r.is_holiday ? 'Holiday' : r.status?.replace('_', ' ')}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium capitalize',
+                  r.is_holiday ? 'bg-orange-100 text-orange-700' : STATUS_COLOR[r.status]
+                )}>
+                  {r.is_holiday ? 'Holiday' : r.status?.replace('_', ' ')}
+                </span>
+                {r.status === 'absent' && r.date?.slice(0, 10) < todayKey && (
+                  r.leave_conversion ? (
+                    <span className="text-[11px] font-medium text-slate-400">
+                      Leave {r.leave_conversion.status}
+                    </span>
+                  ) : (
+                    <button onClick={() => setLeaveModalRecord(r)}
+                      className="text-[11px] font-semibold text-blue-600 hover:underline">
+                      Mark as Leave
+                    </button>
+                  )
+                )}
+              </div>
             </div>
           ))}
         </div>
       </div>
+
+      {leaveModalRecord && (
+        <MarkAbsentAsLeaveModal
+          record={leaveModalRecord}
+          onClose={() => setLeaveModalRecord(null)}
+          onSuccess={() => setLeaveModalRecord(null)}
+        />
+      )}
     </div>
   )
 }

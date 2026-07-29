@@ -14,6 +14,7 @@ const STATUS_META = {
   late: { label: 'Late', chip: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
   half_day: { label: 'Half Day', chip: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
   absent: { label: 'Absent', chip: 'bg-red-100 text-red-600', dot: 'bg-red-500' },
+  on_leave: { label: 'On Leave', chip: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
 }
 
 function shiftDate(iso, delta) {
