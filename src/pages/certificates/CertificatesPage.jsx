@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Plus, FileText, Edit, Globe, Copy, Trash2, Send } from 'lucide-react'
-import { certificateApi } from '@/lib/api/certificates'
+import { certificateApi, openIssuedCertificatePdf } from '@/lib/api/certificates'
 import { useAuthStore } from '@/store/authStore'
 import { useRole } from '@/hooks/useRole'
 import { Badge } from '@/components/ui/Badge'
@@ -332,14 +332,14 @@ function IssuedCertsTab({ employeeId }) {
             </p>
           </div>
           <div className="flex gap-2">
-            <a href={certificateApi.issuedPdfUrl(cert.id)} target="_blank" rel="noopener noreferrer"
+            <button onClick={() => openIssuedCertificatePdf(cert.id).catch(() => {})}
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
               View PDF
-            </a>
-            <a href={certificateApi.issuedPdfUrl(cert.id)} download={`${cert.certificate_number}.pdf`}
+            </button>
+            <button onClick={() => openIssuedCertificatePdf(cert.id, { download: true, filename: `${cert.certificate_number}.pdf` }).catch(() => {})}
               className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm shadow-blue-500/20">
               Download
-            </a>
+            </button>
           </div>
         </div>
       ))}

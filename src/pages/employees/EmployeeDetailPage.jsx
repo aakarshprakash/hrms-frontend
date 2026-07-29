@@ -10,7 +10,7 @@ import {
 import { employeeApi } from '@/lib/api/employees'
 import { attendanceApi } from '@/lib/api/attendance'
 import { leaveApi } from '@/lib/api/leaves'
-import { payrollApi, salaryApi } from '@/lib/api/payroll'
+import { payrollApi, salaryApi, openPayslipPdf } from '@/lib/api/payroll'
 import { shiftApi } from '@/lib/api/shifts'
 import { useAuthStore } from '@/store/authStore'
 import { useRole } from '@/hooks/useRole'
@@ -569,8 +569,8 @@ export default function EmployeeDetailPage() {
                   <span key="s" className={cn('inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ring-1 ring-inset',
                     p.status === 'paid' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-amber-50 text-amber-700 ring-amber-600/20'
                   )}>{p.status}</span>,
-                  <a key="l" href={`/api/payslips/${p.id}/pdf`} target="_blank" rel="noopener noreferrer"
-                    className="text-[12px] font-semibold text-blue-600 hover:underline">PDF</a>,
+                  <button key="l" onClick={() => openPayslipPdf(p.id).catch(() => {})}
+                    className="text-[12px] font-semibold text-blue-600 hover:underline">PDF</button>,
                 ])}
               />
             </div>
