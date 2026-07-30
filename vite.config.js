@@ -16,8 +16,8 @@ export default defineConfig({
       devOptions: { enabled: true },
       includeAssets: ['favicon.svg', 'pwa-192x192.svg'],
       manifest: {
-        name: 'HRMS — Multi-Branch HR System',
-        short_name: 'HRMS',
+        name: 'Peoplenex — Powered by Sysnac',
+        short_name: 'Peoplenex',
         description: 'Multi-branch Human Resource Management System with offline punch tracking',
         theme_color: '#1e40af',
         background_color: '#f1f5f9',

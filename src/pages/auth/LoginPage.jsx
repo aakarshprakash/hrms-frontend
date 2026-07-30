@@ -46,9 +46,10 @@ export default function LoginPage() {
 
         <div className="relative z-10 text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500 shadow-lg shadow-blue-500/30">
-            <span className="text-white font-bold text-2xl">A</span>
+            <span className="text-white font-bold text-2xl">P</span>
           </div>
-          <h2 className="text-3xl font-bold text-white mb-3">AutoStaff</h2>
+          <h2 className="text-3xl font-bold text-white mb-3">Peoplenex</h2>
+          <p className="text-blue-300 text-xs font-semibold tracking-wide uppercase mb-3">Powered by Sysnac</p>
           <p className="text-blue-200 text-base max-w-xs leading-relaxed">
             Showroom HR Platform — built for vehicle dealerships and automotive sales teams.
           </p>
@@ -76,13 +77,14 @@ export default function LoginPage() {
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-500/30">
-              <span className="text-white font-bold text-xl">A</span>
+              <span className="text-white font-bold text-xl">P</span>
             </div>
-            <h1 className="text-xl font-bold text-slate-900">AutoStaff HRMS</h1>
+            <h1 className="text-xl font-bold text-slate-900">Peoplenex</h1>
+            <p className="text-xs font-semibold tracking-wide uppercase text-blue-600">Powered by Sysnac</p>
           </div>
 
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900">AutoStaff — Showroom HR Platform</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Peoplenex — Showroom HR Platform</h1>
             <p className="mt-1 text-sm text-slate-500">Built for vehicle dealerships</p>
           </div>
 
@@ -164,7 +166,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-6 text-center text-xs text-slate-400">
-            AutoStaff HRMS · Powered by SYSNA
+            Peoplenex · Powered by Sysnac
           </p>
         </div>
       </div>

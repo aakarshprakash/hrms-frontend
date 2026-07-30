@@ -123,13 +123,13 @@ export default function Sidebar({ open, onToggle }) {
           {open ? (
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center shrink-0">
-                <span className="text-white font-bold text-sm">A</span>
+                <span className="text-white font-bold text-sm">P</span>
               </div>
-              <span className="text-white font-bold text-lg tracking-tight">AutoStaff</span>
+              <span className="text-white font-bold text-lg tracking-tight">Peoplenex</span>
             </div>
           ) : (
             <div className="mx-auto h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">A</span>
+              <span className="text-white font-bold text-sm">P</span>
             </div>
           )}
           <button onClick={onToggle}
@@ -159,7 +159,8 @@ export default function Sidebar({ open, onToggle }) {
 
         {open && (
           <div className="px-4 py-3 border-t border-white/5">
-            <p className="text-xs text-slate-500">AutoStaff v1.0</p>
+            <p className="text-xs text-slate-500">Peoplenex</p>
+            <p className="text-[10px] text-slate-600">Powered by Sysnac</p>
           </div>
         )}
       </aside>

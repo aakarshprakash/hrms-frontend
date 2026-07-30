@@ -113,7 +113,7 @@ function SetupProgress({ counts }) {
         <CheckCircle2 size={28} className="text-emerald-500 shrink-0" />
         <div>
           <p className="font-semibold text-emerald-800">System fully configured!</p>
-          <p className="text-xs text-emerald-600 mt-0.5">All required settings are in place. Your AutoStaff showroom is ready to use.</p>
+          <p className="text-xs text-emerald-600 mt-0.5">All required settings are in place. Your Peoplenex showroom is ready to use.</p>
         </div>
       </div>
     )
@@ -242,7 +242,7 @@ export default function SettingsPage() {
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Settings & Setup</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Configure every aspect of your AutoStaff showroom from one place.</p>
+        <p className="text-sm text-slate-500 mt-0.5">Configure every aspect of your Peoplenex showroom from one place.</p>
       </div>
 
       {/* Quick Setup banner */}
