@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useRole } from '@/hooks/useRole'
+import logoWhite from '@/assets/brand/logo-white.png'
+import icon from '@/assets/brand/icon.png'
 import {
   LayoutDashboard, Users, Clock, CalendarDays, DollarSign, Award,
   BarChart2, ChevronLeft, Menu, Building, Briefcase, CalendarRange,
@@ -112,23 +114,16 @@ export default function Sidebar({ open, onToggle }) {
 
       <aside className={cn(
         'fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out',
-        'bg-gradient-to-b from-slate-900 to-slate-800',
+        'bg-gradient-to-b from-brand-navy to-slate-800',
         open ? 'w-64' : 'w-0 overflow-hidden lg:w-[68px] lg:overflow-visible',
         'lg:relative lg:flex shadow-xl'
       )}>
         {/* Logo */}
         <div className="flex h-16 items-center justify-between px-4 border-b border-white/5 shrink-0">
           {open ? (
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center shrink-0">
-                <span className="text-white font-bold text-sm">P</span>
-              </div>
-              <span className="text-white font-bold text-lg tracking-tight">Peoplenex</span>
-            </div>
+            <img src={logoWhite} alt="PeopleNex HRMS" className="h-8 w-auto shrink-0" />
           ) : (
-            <div className="mx-auto h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">P</span>
-            </div>
+            <img src={icon} alt="PeopleNex" className="mx-auto h-8 w-8 object-contain" />
           )}
           <button onClick={onToggle}
             className={cn('rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors', !open && 'hidden lg:flex')}

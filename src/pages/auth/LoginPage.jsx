@@ -7,6 +7,8 @@ import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { authApi } from '@/lib/api/auth'
+import logoWhite from '@/assets/brand/logo-white.png'
+import logoFull from '@/assets/brand/logo-full.png'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -38,17 +40,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left decorative panel — hidden on mobile */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex-col items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-brand-navy via-blue-950 to-brand-navy flex-col items-center justify-center p-12 relative overflow-hidden">
         {/* Decorative circles */}
         <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-blue-500/10" />
         <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-blue-400/10" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full border border-blue-500/10" />
 
         <div className="relative z-10 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500 shadow-lg shadow-blue-500/30">
-            <span className="text-white font-bold text-2xl">P</span>
-          </div>
-          <h2 className="text-3xl font-bold text-white mb-3">Peoplenex</h2>
+          <img src={logoWhite} alt="PeopleNex HRMS" className="mx-auto mb-6 h-12 w-auto" />
           <p className="text-blue-300 text-xs font-semibold tracking-wide uppercase mb-3">Powered by Sysnac</p>
           <p className="text-blue-200 text-base max-w-xs leading-relaxed">
             Showroom HR Platform — built for vehicle dealerships and automotive sales teams.
@@ -76,10 +75,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 shadow-lg shadow-blue-500/30">
-              <span className="text-white font-bold text-xl">P</span>
-            </div>
-            <h1 className="text-xl font-bold text-slate-900">Peoplenex</h1>
+            <img src={logoFull} alt="PeopleNex HRMS" className="mx-auto mb-3 h-14 w-auto" />
             <p className="text-xs font-semibold tracking-wide uppercase text-blue-600">Powered by Sysnac</p>
           </div>
 
