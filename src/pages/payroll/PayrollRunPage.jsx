@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Play, Download, CheckCircle, Clock, AlertCircle, RefreshCw, Settings2, Trash2 } from 'lucide-react'
+import { Play, Download, CheckCircle, Clock, AlertCircle, RefreshCw, Settings2, Trash2, CalendarPlus, Wallet } from 'lucide-react'
 import { payrollApi } from '@/lib/api/payroll'
 import { useAuthStore } from '@/store/authStore'
 import { Spinner } from '@/components/ui/Spinner'
@@ -45,18 +45,24 @@ function RunCard({ run, onTrigger, onExport, onManage, onDelete }) {
   const payslipsCount = status?.payslips_count ?? run.payslips_count ?? 0
 
   return (
-    <div className="rounded-2xl border bg-white shadow-sm p-5 flex items-center justify-between gap-4 flex-wrap">
-      <div>
-        <div className="flex items-center gap-3 mb-1">
-          <p className="text-base font-semibold text-slate-900">
-            {MONTHS[run.month - 1]} {run.year}
-          </p>
-          <StatusBadge status={currentStatus} />
+    <div className="rounded-2xl border bg-white shadow-sm p-5 flex items-center justify-between gap-4 flex-wrap hover:shadow-md transition-shadow">
+      <div className="flex items-center gap-4">
+        <div className="hidden sm:flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-blue-50 border border-blue-100 text-blue-700">
+          <span className="text-[10px] font-bold uppercase leading-none">{MONTHS[run.month - 1].slice(0, 3)}</span>
+          <span className="text-base font-bold leading-tight">{run.year}</span>
         </div>
-        <p className="text-xs text-slate-500">
-          {payslipsCount} payslip{payslipsCount !== 1 ? 's' : ''} generated
-          {run.run_at ? ` · Run at ${new Date(run.run_at).toLocaleString()}` : ''}
-        </p>
+        <div>
+          <div className="flex items-center gap-3 mb-1">
+            <p className="text-base font-semibold text-slate-900">
+              {MONTHS[run.month - 1]} {run.year}
+            </p>
+            <StatusBadge status={currentStatus} />
+          </div>
+          <p className="text-xs text-slate-500">
+            {payslipsCount} payslip{payslipsCount !== 1 ? 's' : ''} generated
+            {run.run_at ? ` · Run at ${new Date(run.run_at).toLocaleString()}` : ''}
+          </p>
+        </div>
       </div>
       <div className="flex gap-2">
         <button onClick={() => onManage(run.id)}
@@ -115,7 +121,14 @@ export default function PayrollRunPage() {
       month,
       year,
     }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['payroll-runs'] }); notify('Payroll run created.') },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['payroll-runs'] })
+      // Jump straight to the new draft's preview rather than leaving HR on
+      // the list -- that preview is the whole point of creating a draft
+      // first instead of running payroll immediately.
+      const newRunId = res.data?.data?.id
+      if (newRunId) navigate(`/payroll/runs/${newRunId}`)
+    },
     onError: (e) => notify(e.response?.data?.message ?? 'Failed to create run.', 'error'),
   })
 
@@ -153,7 +166,10 @@ export default function PayrollRunPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-900">Payroll Runs</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Payroll Runs</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Create a draft, review the salary preview, then run payroll to generate payslips.</p>
+      </div>
 
       {toast && (
         <div className={cn('rounded-xl px-4 py-3 text-sm font-medium flex items-start gap-2',
@@ -165,7 +181,15 @@ export default function PayrollRunPage() {
 
       {/* Create new run */}
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-900 mb-4">Create New Payroll Run</h2>
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <CalendarPlus size={18} />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">Create New Payroll Run</h2>
+            <p className="text-xs text-slate-500">You'll land on a preview before anything is finalized.</p>
+          </div>
+        </div>
         <div className="flex items-end gap-4 flex-wrap">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Month</label>
@@ -193,7 +217,9 @@ export default function PayrollRunPage() {
 
       {/* Existing runs */}
       <div>
-        <h2 className="text-sm font-semibold text-slate-700 mb-3">All Runs</h2>
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
+          <Wallet size={15} className="text-slate-400" /> All Runs
+        </h2>
         {isLoading ? (
           <div className="flex justify-center py-12"><Spinner className="h-8 w-8" /></div>
         ) : runs.length === 0 ? (

@@ -24,11 +24,14 @@ export const payrollApi = {
   deleteRun: (id) => api.delete(`/payroll-runs/${id}`),
   triggerRun: (id) => api.post(`/payroll-runs/${id}/run`),
   runStatus: (id) => api.get(`/payroll-runs/${id}/status`),
+  previewRun: (id) => api.get(`/payroll-runs/${id}/preview`),
   bankExport: (id) => api.get(`/payroll-runs/${id}/bank-export`, { responseType: 'blob' }),
   summary: (params) => api.get('/payroll/summary', { params }),
 
   listAdjustments: (runId) => api.get(`/payroll-runs/${runId}/adjustments`),
   createAdjustment: (runId, data) => api.post(`/payroll-runs/${runId}/adjustments`, data),
+  bulkCreateAdjustment: (runId, data) => api.post(`/payroll-runs/${runId}/adjustments/bulk`, data),
+  updateAdjustment: (id, data) => api.put(`/payroll-adjustments/${id}`, data),
   deleteAdjustment: (id) => api.delete(`/payroll-adjustments/${id}`),
 
   listPayslips: (params) => api.get('/payslips', { params }),
