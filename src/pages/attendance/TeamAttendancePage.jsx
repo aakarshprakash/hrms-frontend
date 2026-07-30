@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, CalendarDays, Fingerprint, X, Save } from 'lucide-react'
+import {
+  ChevronLeft, ChevronRight, CalendarDays, Fingerprint, X, Save, Search,
+  Users, CheckCircle, Clock, MinusCircle, XCircle, Umbrella, HelpCircle,
+} from 'lucide-react'
 import { attendanceApi } from '@/lib/api/attendance'
 import { branchApi, departmentApi } from '@/lib/api/departments'
 import { useAuthStore } from '@/store/authStore'
@@ -10,11 +13,29 @@ import { Spinner } from '@/components/ui/Spinner'
 import { cn } from '@/lib/utils'
 
 const STATUS_META = {
-  present: { label: 'Present', chip: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
-  late: { label: 'Late', chip: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
-  half_day: { label: 'Half Day', chip: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
-  absent: { label: 'Absent', chip: 'bg-red-100 text-red-600', dot: 'bg-red-500' },
-  on_leave: { label: 'On Leave', chip: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
+  present: { label: 'Present', chip: 'bg-green-100 text-green-700', dot: 'bg-green-500', icon: CheckCircle, border: 'border-l-green-500' },
+  late: { label: 'Late', chip: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500', icon: Clock, border: 'border-l-amber-500' },
+  half_day: { label: 'Half Day', chip: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500', icon: MinusCircle, border: 'border-l-blue-500' },
+  absent: { label: 'Absent', chip: 'bg-red-100 text-red-600', dot: 'bg-red-500', icon: XCircle, border: 'border-l-red-500' },
+  on_leave: { label: 'On Leave', chip: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500', icon: Umbrella, border: 'border-l-purple-500' },
+}
+
+// Filter buckets shown as the clickable summary cards -- a superset of
+// STATUS_META that also covers "not yet marked", which isn't a real
+// attendance status but is the single most HR-relevant bucket for today.
+const FILTER_META = {
+  ...STATUS_META,
+  unmarked: { label: 'Not Marked', chip: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400', icon: HelpCircle, border: 'border-l-slate-300' },
+}
+
+const FILTER_ORDER = ['present', 'late', 'half_day', 'absent', 'on_leave', 'unmarked']
+
+function rowBucket(row) {
+  if (row.on_approved_leave) return 'on_leave'
+  const status = row.attendance?.status
+  if (status === 'on_leave') return 'on_leave'
+  if (status && FILTER_META[status]) return status
+  return 'unmarked'
 }
 
 function shiftDate(iso, delta) {
@@ -31,6 +52,8 @@ export default function TeamAttendancePage() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   const [filterBranch, setFilterBranch] = useState(activeBranchId ?? '')
   const [filterDept, setFilterDept] = useState('')
+  const [statusFilter, setStatusFilter] = useState(null) // one of FILTER_ORDER, or null for "all"
+  const [search, setSearch] = useState('')
   const [editRow, setEditRow] = useState(null) // employee row being edited
 
   const { data: branchesData } = useQuery({
@@ -63,11 +86,35 @@ export default function TeamAttendancePage() {
   })
 
   const rows = data?.rows ?? []
-  const counts = data?.counts ?? {}
   const isToday = date === new Date().toISOString().slice(0, 10)
+
+  // Computed client-side from the same rows the table renders, rather than
+  // the backend's counts (which overlaps "present" with "late"), so the
+  // numbers on each card always match exactly what clicking it filters to.
+  const summary = useMemo(() => {
+    const s = { total: rows.length, present: 0, late: 0, half_day: 0, absent: 0, on_leave: 0, unmarked: 0 }
+    rows.forEach((row) => { s[rowBucket(row)]++ })
+    return s
+  }, [rows])
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return rows.filter((row) => {
+      if (statusFilter && rowBucket(row) !== statusFilter) return false
+      if (q) {
+        const hay = `${row.employee.name} ${row.employee.employee_code}`.toLowerCase()
+        if (!hay.includes(q)) return false
+      }
+      return true
+    })
+  }, [rows, statusFilter, search])
 
   function quickMark(row, status) {
     markMutation.mutate({ employee_id: row.employee.id, date, status })
+  }
+
+  function toggleFilter(key) {
+    setStatusFilter((prev) => (prev === key ? null : key))
   }
 
   return (
@@ -116,24 +163,51 @@ export default function TeamAttendancePage() {
           <option value="">All Departments</option>
           {(Array.isArray(deptsData) ? deptsData : []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select>
+
+        <div className="relative flex-1 min-w-[180px]">
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or employee code…"
+            className="w-full rounded-md border bg-white py-2 pl-9 pr-3 text-sm text-slate-700 outline-none focus:border-blue-500" />
+        </div>
       </div>
 
-      {/* Summary chips */}
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-        {[
-          ['Total', counts.total, 'text-slate-800'],
-          ['Present', counts.present, 'text-green-600'],
-          ['Late', counts.late, 'text-amber-600'],
-          ['Half Day', counts.half_day, 'text-blue-600'],
-          ['Absent', counts.absent, 'text-red-500'],
-          ['On Leave', counts.on_leave, 'text-purple-600'],
-        ].map(([label, value, color]) => (
-          <div key={label} className="rounded-xl border bg-white p-3 text-center shadow-sm">
-            <p className={cn('text-xl font-bold', color)}>{value ?? 0}</p>
-            <p className="text-[11px] text-slate-500">{label}</p>
-          </div>
-        ))}
+      {/* Summary cards — click one to filter the roster below; click again to clear */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+        <button type="button" onClick={() => setStatusFilter(null)}
+          className={cn(
+            'rounded-xl border-2 border-l-4 bg-white p-3.5 text-left shadow-sm transition-all hover:shadow-md',
+            statusFilter === null ? 'border-slate-800 border-l-slate-800' : 'border-transparent border-l-slate-300'
+          )}>
+          <div className="flex items-center gap-2 text-slate-400"><Users size={15} /><span className="text-[11px] font-semibold uppercase tracking-wide">Total</span></div>
+          <p className="mt-1.5 text-2xl font-bold text-slate-800">{summary.total}</p>
+        </button>
+        {FILTER_ORDER.map((key) => {
+          const meta = FILTER_META[key]
+          const Icon = meta.icon
+          const active = statusFilter === key
+          return (
+            <button key={key} type="button" onClick={() => toggleFilter(key)}
+              className={cn(
+                'rounded-xl border-2 border-l-4 bg-white p-3.5 text-left shadow-sm transition-all hover:shadow-md',
+                active ? cn('border-slate-800', meta.border) : cn('border-transparent', meta.border)
+              )}>
+              <div className={cn('flex items-center gap-2', meta.chip.split(' ')[1])}>
+                <Icon size={15} />
+                <span className="text-[11px] font-semibold uppercase tracking-wide">{meta.label}</span>
+              </div>
+              <p className="mt-1.5 text-2xl font-bold text-slate-800">{summary[key]}</p>
+            </button>
+          )
+        })}
       </div>
+
+      {statusFilter && (
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          Showing only <span className={cn('rounded-full px-2 py-0.5 font-medium', FILTER_META[statusFilter].chip)}>{FILTER_META[statusFilter].label}</span>
+          <button onClick={() => setStatusFilter(null)} className="text-blue-600 hover:underline">Clear filter</button>
+        </div>
+      )}
 
       {isLoading && <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div>}
       {isError && (
@@ -156,14 +230,17 @@ export default function TeamAttendancePage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {rows.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">No active employees found.</td></tr>
+              {filteredRows.length === 0 && (
+                <tr><td colSpan={canManageEmployees ? 6 : 5} className="px-4 py-10 text-center text-slate-400">
+                  {rows.length === 0 ? 'No active employees found.' : 'No employees match the current filter or search.'}
+                </td></tr>
               )}
-              {rows.map((row) => {
+              {filteredRows.map((row) => {
                 const att = row.attendance
                 const meta = att ? STATUS_META[att.status] : null
+                const bucketMeta = FILTER_META[rowBucket(row)]
                 return (
-                  <tr key={row.employee.id} className="hover:bg-slate-50 transition-colors">
+                  <tr key={row.employee.id} className={cn('border-l-4 hover:bg-slate-50 transition-colors', bucketMeta.border)}>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-3">
                         {row.employee.avatar_url ? (
