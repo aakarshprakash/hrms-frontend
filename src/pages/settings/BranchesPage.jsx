@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Building2, Plus, Pencil, Trash2, X, Save, Loader2,
-  MapPin, Globe, DollarSign, Clock, AlertCircle, CheckCircle2,
+  MapPin, Globe, DollarSign, Clock, AlertCircle, CheckCircle2, CalendarClock,
 } from 'lucide-react'
 import { branchApi, companyApi } from '@/lib/api/departments'
 import { cn } from '@/lib/utils'
@@ -23,7 +23,20 @@ const CURRENCIES = [
   { code: 'AUD', label: 'AUD — Australian Dollar' },
 ]
 
-const EMPTY = { name: '', address: '', city: '', country: '', timezone: 'Asia/Kolkata', currency_code: 'INR' }
+const WEEKDAYS = [
+  { value: 0, label: 'Su' },
+  { value: 1, label: 'Mo' },
+  { value: 2, label: 'Tu' },
+  { value: 3, label: 'We' },
+  { value: 4, label: 'Th' },
+  { value: 5, label: 'Fr' },
+  { value: 6, label: 'Sa' },
+]
+
+const EMPTY = {
+  name: '', address: '', city: '', country: '', timezone: 'Asia/Kolkata', currency_code: 'INR',
+  payroll_days_in_month: 30, week_off_days: [0, 6],
+}
 
 // ─── Form ─────────────────────────────────────────────────────────────────────
 
@@ -31,9 +44,19 @@ function BranchForm({ initial = EMPTY, onSave, onCancel, saving }) {
   const [form, setForm] = useState(initial)
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
 
+  function toggleWorkingDay(day) {
+    setForm((f) => {
+      const weekOff = f.week_off_days ?? []
+      return {
+        ...f,
+        week_off_days: weekOff.includes(day) ? weekOff.filter((d) => d !== day) : [...weekOff, day].sort(),
+      }
+    })
+  }
+
   function handleSubmit(e) {
     e.preventDefault()
-    onSave(form)
+    onSave({ ...form, payroll_days_in_month: Number(form.payroll_days_in_month) || 30 })
   }
 
   return (
@@ -96,6 +119,36 @@ function BranchForm({ initial = EMPTY, onSave, onCancel, saving }) {
           >
             {CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
           </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-600 mb-1">Payroll Days in Month</label>
+          <input
+            type="number" min={1} max={31}
+            value={form.payroll_days_in_month ?? 30}
+            onChange={set('payroll_days_in_month')}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15 focus:bg-white transition-all"
+          />
+          <p className="mt-1 text-xs text-slate-400">Fixed divisor used to calculate a per-day salary rate for Loss of Pay deductions.</p>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-xs font-semibold text-slate-600 mb-1">Working Days</label>
+          <div className="flex gap-2">
+            {WEEKDAYS.map((d) => {
+              const isWorking = !(form.week_off_days ?? []).includes(d.value)
+              return (
+                <button key={d.value} type="button" onClick={() => toggleWorkingDay(d.value)}
+                  className={cn(
+                    'h-9 w-9 rounded-full text-xs font-semibold border transition-colors',
+                    isWorking
+                      ? 'bg-blue-600 border-blue-600 text-white'
+                      : 'bg-slate-100 border-slate-200 text-slate-400'
+                  )}>
+                  {d.label}
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-1 text-xs text-slate-400">Unhighlighted days are week-off — no absentee marking and no leave charge on those days.</p>
         </div>
       </div>
 
@@ -174,6 +227,13 @@ function BranchCard({ branch, onEdit, onDelete }) {
             <span>{branch.currency_code}</span>
           </div>
         )}
+        <div className="flex items-center gap-1.5 col-span-2">
+          <CalendarClock size={11} className="text-slate-400 shrink-0" />
+          <span>
+            {WEEKDAYS.filter((d) => !(branch.week_off_days ?? [0, 6]).includes(d.value)).map((d) => d.label).join(' ')}
+            {' · '}{branch.payroll_days_in_month ?? 30}-day payroll
+          </span>
+        </div>
       </div>
     </div>
   )
@@ -388,6 +448,8 @@ export default function BranchesPage() {
                     country: editBranch.country ?? '',
                     timezone: editBranch.timezone ?? 'Asia/Kolkata',
                     currency_code: editBranch.currency_code ?? 'INR',
+                    payroll_days_in_month: editBranch.payroll_days_in_month ?? 30,
+                    week_off_days: editBranch.week_off_days ?? [0, 6],
                   }}
                   onSave={(data) => update({ id: editBranch.id, data })}
                   onCancel={() => setEditBranch(null)}
