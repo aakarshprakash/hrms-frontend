@@ -27,8 +27,6 @@ const navItems = [
       { to: '/attendance/reports', label: 'Reports', roles: MANAGE, perms: ['attendance.view'] },
       { to: '/attendance/muster-roll', label: 'Muster Roll', roles: MANAGE, perms: ['attendance.view'] },
       { to: '/attendance/exceptions', label: 'Exceptions', roles: MANAGE, perms: ['attendance.view'] },
-      { to: '/shifts/roster', label: 'Shift Roster' },
-      { to: '/shifts/swaps', label: 'Shift Swaps' },
       { to: '/shifts/holidays', label: 'Holidays' },
       { to: '/settings/shifts', label: 'Shift Settings', roles: MANAGE, perms: ['shifts.manage'] },
       { to: '/settings/biometric', label: 'Biometric Sync', roles: ADMIN, perms: ['settings.manage'] },

@@ -261,13 +261,6 @@ export default function DashboardPage() {
               color="bg-rose-500"
             />
             <QuickAction
-              to="/shifts/roster"
-              icon={Users}
-              label="Shift Roster"
-              desc="Showroom shift schedule"
-              color="bg-purple-500"
-            />
-            <QuickAction
               to="/certificates"
               icon={Award}
               label="Certificates"
