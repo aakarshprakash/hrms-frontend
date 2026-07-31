@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useNavigate, Link } from 'react-router-dom'
-import { Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, Users, ShieldCheck, TrendingUp, Network } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { authApi } from '@/lib/api/auth'
@@ -46,24 +46,24 @@ export default function LoginPage() {
         <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-blue-400/10" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full border border-blue-500/10" />
 
-        <div className="relative z-10 text-center">
+        <div className="relative z-10 text-center max-w-sm">
           <img src={logoWhite} alt="PeopleNex HRMS" className="mx-auto mb-6 h-12 w-auto" />
-          <p className="text-blue-300 text-xs font-semibold tracking-wide uppercase mb-3">Powered by Sysnac</p>
-          <p className="text-blue-200 text-base max-w-xs leading-relaxed">
-            Showroom HR Platform — built for vehicle dealerships and automotive sales teams.
+          <p className="text-blue-300 text-xs font-semibold tracking-wide uppercase mb-4">Powered by Sysnac</p>
+          <p className="text-blue-200 text-base leading-relaxed">
+            A modern HRMS platform that simplifies workforce management and helps organizations focus on what matters most — their people.
           </p>
 
           <div className="mt-10 grid grid-cols-2 gap-4 text-left">
             {[
-              { emoji: '🚗', label: 'Showroom Ready', desc: 'Built for dealerships' },
-              { emoji: '📅', label: 'Attendance', desc: 'Track with offline sync' },
-              { emoji: '🌴', label: 'Leave mgmt', desc: 'Smart approval flow' },
-              { emoji: '💰', label: 'Payroll', desc: 'Incentives & commissions' },
+              { icon: Users, label: 'People First', desc: 'Built around your workforce' },
+              { icon: ShieldCheck, label: 'Trust & Reliability', desc: 'Secure and dependable' },
+              { icon: TrendingUp, label: 'Growth & Efficiency', desc: 'Streamlined HR operations' },
+              { icon: Network, label: 'Connected Workforce', desc: 'One platform, every team' },
             ].map((f) => (
-              <div key={f.label} className="rounded-xl bg-white/5 border border-white/10 p-3">
-                <p className="text-xl mb-1">{f.emoji}</p>
+              <div key={f.label} className="rounded-xl bg-white/5 border border-white/10 p-3.5">
+                <f.icon size={18} className="text-brand-teal mb-2" />
                 <p className="text-sm font-semibold text-white">{f.label}</p>
-                <p className="text-xs text-blue-300">{f.desc}</p>
+                <p className="text-xs text-blue-300 mt-0.5">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -80,8 +80,8 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900">Peoplenex — Showroom HR Platform</h1>
-            <p className="mt-1 text-sm text-slate-500">Built for vehicle dealerships</p>
+            <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
+            <p className="mt-1 text-sm text-slate-500">Sign in to your account to continue</p>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -162,7 +162,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-6 text-center text-xs text-slate-400">
-            Peoplenex · Powered by Sysnac
+            © {new Date().getFullYear()} PeopleNex HRMS · Powered by Sysnac
           </p>
         </div>
       </div>
