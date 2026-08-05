@@ -7,11 +7,24 @@ import {
 } from 'lucide-react'
 import { attendanceApi } from '@/lib/api/attendance'
 import { branchApi, departmentApi } from '@/lib/api/departments'
+import { employeeApi } from '@/lib/api/employees'
 import { useAuthStore } from '@/store/authStore'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn } from '@/lib/utils'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+const STATUS_STYLES = {
+  present: 'text-emerald-600',
+  late: 'text-amber-600',
+  half_day: 'text-blue-600',
+  absent: 'text-rose-600',
+  on_leave: 'text-purple-600',
+}
+
+function statusLabel(status) {
+  return status ? status.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '—'
+}
 
 function KpiCard({ icon: Icon, label, value, color }) {
   return (
@@ -36,6 +49,8 @@ export default function AttendanceReportsPage() {
   const [year, setYear] = useState(now.getFullYear())
   const [branchId, setBranchId] = useState(activeBranchId ?? '')
   const [deptId, setDeptId] = useState('')
+  const [employeeId, setEmployeeId] = useState('')
+  const [tab, setTab] = useState('summary')
   const [exporting, setExporting] = useState(false)
 
   const { data: branchesData } = useQuery({
@@ -48,21 +63,43 @@ export default function AttendanceReportsPage() {
     queryFn: () => departmentApi.list({ branch_id: branchId || undefined }).then((r) => r.data?.data ?? r.data ?? []),
   })
 
-  const { data: rows, isLoading, isError } = useQuery({
+  const { data: employeesData } = useQuery({
+    queryKey: ['employees-lite', branchId],
+    queryFn: () => employeeApi.list({ branch_id: branchId || undefined, status: 'active', per_page: 200 }).then((r) => r.data?.data ?? []),
+    enabled: tab === 'daily',
+  })
+
+  const { data: summaryRows, isLoading: summaryLoading, isError: summaryError } = useQuery({
     queryKey: ['attendance-report-summary', month, year, branchId, deptId],
     queryFn: () => attendanceApi.reportSummary({
       month, year, branch_id: branchId || undefined, department_id: deptId || undefined,
     }).then((r) => r.data?.data ?? []),
+    enabled: tab === 'summary',
   })
+
+  const { data: dailyRows, isLoading: dailyLoading, isError: dailyError } = useQuery({
+    queryKey: ['attendance-report-daily', month, year, branchId, deptId, employeeId],
+    queryFn: () => attendanceApi.reportDaily({
+      month, year, branch_id: branchId || undefined, department_id: deptId || undefined, employee_id: employeeId || undefined,
+    }).then((r) => r.data?.data ?? []),
+    enabled: tab === 'daily',
+  })
+
+  const rows = tab === 'summary' ? summaryRows : dailyRows
+  const isLoading = tab === 'summary' ? summaryLoading : dailyLoading
+  const isError = tab === 'summary' ? summaryError : dailyError
 
   async function handleExport() {
     setExporting(true)
     try {
-      const res = await attendanceApi.reportSummaryExport({ month, year, branch_id: branchId || undefined, department_id: deptId || undefined })
+      const filters = { month, year, branch_id: branchId || undefined, department_id: deptId || undefined }
+      const res = tab === 'summary'
+        ? await attendanceApi.reportSummaryExport(filters)
+        : await attendanceApi.reportDailyExport({ ...filters, employee_id: employeeId || undefined })
       const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }))
       const a = document.createElement('a')
       a.href = url
-      a.download = `attendance-summary-${year}-${String(month).padStart(2, '0')}.csv`
+      a.download = `attendance-${tab}-${year}-${String(month).padStart(2, '0')}.csv`
       a.click()
       URL.revokeObjectURL(url)
     } finally {
@@ -70,12 +107,19 @@ export default function AttendanceReportsPage() {
     }
   }
 
-  const totals = (rows ?? []).reduce((acc, r) => ({
-    present: acc.present + r.present_days,
-    late: acc.late + r.late_days,
-    absent: acc.absent + r.absent_days,
-    leave: acc.leave + r.leave_days,
-  }), { present: 0, late: 0, absent: 0, leave: 0 })
+  const totals = tab === 'summary'
+    ? (summaryRows ?? []).reduce((acc, r) => ({
+        present: acc.present + r.present_days,
+        late: acc.late + r.late_days,
+        absent: acc.absent + r.absent_days,
+        leave: acc.leave + r.leave_days,
+      }), { present: 0, late: 0, absent: 0, leave: 0 })
+    : (dailyRows ?? []).reduce((acc, r) => ({
+        present: acc.present + (r.status === 'present' ? 1 : 0),
+        late: acc.late + (r.status === 'late' ? 1 : 0),
+        absent: acc.absent + (r.status === 'absent' ? 1 : 0),
+        leave: acc.leave + (r.status === 'on_leave' ? 1 : 0),
+      }), { present: 0, late: 0, absent: 0, leave: 0 })
 
   const field = 'rounded-xl border-0 bg-slate-100/80 px-3.5 py-2 text-sm text-slate-700 outline-none ring-1 ring-transparent focus:bg-white focus:ring-2 focus:ring-blue-500/60'
 
@@ -88,7 +132,11 @@ export default function AttendanceReportsPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">Attendance Reports</h1>
-            <p className="text-[13px] text-slate-500">Monthly rollup of presence, lateness and leave, per employee.</p>
+            <p className="text-[13px] text-slate-500">
+              {tab === 'summary'
+                ? 'Monthly rollup of presence, lateness and leave, per employee.'
+                : 'Day-by-day check-in and check-out times, per employee.'}
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -103,6 +151,18 @@ export default function AttendanceReportsPage() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="mb-4 inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+        <button onClick={() => setTab('summary')}
+          className={cn('rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-colors', tab === 'summary' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-50')}>
+          Summary
+        </button>
+        <button onClick={() => setTab('daily')}
+          className={cn('rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-colors', tab === 'daily' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-50')}>
+          Daily
+        </button>
+      </div>
+
       {/* Filters */}
       <div className="mb-5 flex flex-wrap items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
         <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className={field}>
@@ -111,7 +171,7 @@ export default function AttendanceReportsPage() {
         <select value={year} onChange={(e) => setYear(Number(e.target.value))} className={field}>
           {Array.from({ length: 6 }, (_, i) => now.getFullYear() - 3 + i).map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
-        <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setDeptId('') }} className={field}>
+        <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setDeptId(''); setEmployeeId('') }} className={field}>
           <option value="">All Branches</option>
           {(branchesData?.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
@@ -119,6 +179,12 @@ export default function AttendanceReportsPage() {
           <option value="">All Departments</option>
           {(Array.isArray(deptsData) ? deptsData : []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select>
+        {tab === 'daily' && (
+          <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className={field}>
+            <option value="">All Employees</option>
+            {(employeesData ?? []).map((e) => <option key={e.id} value={e.id}>{e.full_name ?? `${e.first_name} ${e.last_name}`}</option>)}
+          </select>
+        )}
         <button onClick={handleExport} disabled={exporting || !rows?.length}
           className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-[13px] font-semibold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 disabled:opacity-50">
           <Download size={13} /> {exporting ? 'Exporting…' : 'Export CSV'}
@@ -127,7 +193,7 @@ export default function AttendanceReportsPage() {
 
       {/* KPIs */}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiCard icon={Users} label="Employees" value={rows?.length ?? 0} color="bg-slate-600" />
+        <KpiCard icon={Users} label={tab === 'summary' ? 'Employees' : 'Records'} value={rows?.length ?? 0} color="bg-slate-600" />
         <KpiCard icon={Clock} label="Late Marks" value={totals.late} color="bg-amber-500" />
         <KpiCard icon={XCircle} label="Absences" value={totals.absent} color="bg-rose-500" />
         <KpiCard icon={CalendarOff} label="Leave Days" value={totals.leave} color="bg-purple-500" />
@@ -140,7 +206,7 @@ export default function AttendanceReportsPage() {
         </div>
       )}
 
-      {!isLoading && !isError && (
+      {!isLoading && !isError && tab === 'summary' && (
         <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -159,10 +225,10 @@ export default function AttendanceReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {(rows ?? []).length === 0 && (
+                {(summaryRows ?? []).length === 0 && (
                   <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-400">No employees found for this filter.</td></tr>
                 )}
-                {(rows ?? []).map((r) => (
+                {(summaryRows ?? []).map((r) => (
                   <tr key={r.employee.id} className="hover:bg-slate-50/60">
                     <td className="px-4 py-3">
                       <p className="font-semibold text-slate-800">{r.employee.name}</p>
@@ -177,6 +243,45 @@ export default function AttendanceReportsPage() {
                     <td className="px-4 py-3 text-center text-slate-400">{r.holiday_days || '—'}</td>
                     <td className="px-4 py-3 text-right font-medium text-slate-700">{r.worked_hours}h</td>
                     <td className="px-4 py-3 text-right text-slate-400">{r.avg_late_minutes ? `${r.avg_late_minutes}m` : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {!isLoading && !isError && tab === 'daily' && (
+        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  <th className="px-4 py-3">Employee</th>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 text-center">Check In</th>
+                  <th className="px-4 py-3 text-center">Check Out</th>
+                  <th className="px-4 py-3 text-right">Hours</th>
+                  <th className="px-4 py-3 text-right">Late By</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {(dailyRows ?? []).length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-400">No attendance records found for this filter.</td></tr>
+                )}
+                {(dailyRows ?? []).map((r) => (
+                  <tr key={`${r.employee.id}-${r.date}`} className="hover:bg-slate-50/60">
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-slate-800">{r.employee.name}</p>
+                      <p className="text-[11px] text-slate-400">{r.employee.employee_code} · {r.employee.branch}</p>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{r.date}</td>
+                    <td className={cn('px-4 py-3 font-medium', STATUS_STYLES[r.status] ?? 'text-slate-500')}>{statusLabel(r.status)}</td>
+                    <td className="px-4 py-3 text-center text-slate-700">{r.check_in ?? '—'}</td>
+                    <td className="px-4 py-3 text-center text-slate-700">{r.check_out ?? '—'}</td>
+                    <td className="px-4 py-3 text-right font-medium text-slate-700">{r.worked_hours != null ? `${r.worked_hours}h` : '—'}</td>
+                    <td className="px-4 py-3 text-right text-slate-400">{r.late_by_minutes ? `${r.late_by_minutes}m` : '—'}</td>
                   </tr>
                 ))}
               </tbody>
