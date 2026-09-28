@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Edit2, Trash2, Clock, Check, X, Users } from 'lucide-react'
+import { Plus, Pencil, Trash2, Clock, Check, Users, Search, ChevronDown, Info } from 'lucide-react'
 import { shiftApi } from '@/lib/api/shifts'
 import { branchApi } from '@/lib/api/departments'
 import { employeeApi } from '@/lib/api/employees'
@@ -8,11 +8,9 @@ import { useAuthStore } from '@/store/authStore'
 import { useRole } from '@/hooks/useRole'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn } from '@/lib/utils'
+import { PageHeader, Card, Button, IconButton, Modal, Field, Input, Select, EmptyState, ErrorBanner } from '@/components/ui/kit'
 
-function toHHMM(val) {
-  if (!val) return '—'
-  return val.slice(0, 5)
-}
+const hhmm = (v) => (v ? v.slice(0, 5) : '—')
 
 function workingHours(start, end, breakMin) {
   if (!start || !end) return null
@@ -26,106 +24,116 @@ function workingHours(start, end, breakMin) {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
-function ShiftForm({ initial, branches, activeBranchId, onSave, onCancel, saving }) {
-  const [name, setName]             = useState(initial?.name ?? '')
-  const [branchId, setBranchId]     = useState(initial?.branch_id ?? activeBranchId ?? '')
-  const [startTime, setStartTime]   = useState(initial?.start_time?.slice(0, 5) ?? '09:00')
-  const [endTime, setEndTime]       = useState(initial?.end_time?.slice(0, 5) ?? '18:00')
-  const [breakMin, setBreakMin]     = useState(initial?.break_minutes ?? 30)
-  const [graceMin, setGraceMin]     = useState(initial?.grace_minutes ?? 10)
+const RULES = [
+  ['code', 'Short code', 'text', 'Shown on the roster, e.g. GEN'],
+  ['early_exit_grace_minutes', 'Early-exit grace (min)', 'number', 'Leaving this early isn’t flagged'],
+  ['half_day_threshold_minutes', 'Half day below (min worked)', 'number', 'Blank = half the shift'],
+  ['absent_threshold_minutes', 'Absent below (min worked)', 'number', 'Blank = never, e.g. 120'],
+  ['ot_threshold_minutes', 'Overtime after (min extra)', 'number', 'Blank = no overtime tracking'],
+  ['punch_window_before_minutes', 'Punches accepted from (min before start)', 'number', 'Default 180'],
+  ['punch_window_after_minutes', 'Punches accepted until (min after end)', 'number', 'Default 360 — covers night shifts'],
+]
 
-  function handleSubmit(e) {
+function ShiftModal({ initial, branches, activeBranchId, onSave, onClose, saving, error }) {
+  const [base, setBase] = useState({
+    name: initial?.name ?? '',
+    branch_id: initial?.branch_id ?? activeBranchId ?? '',
+    start_time: initial?.start_time?.slice(0, 5) ?? '09:00',
+    end_time: initial?.end_time?.slice(0, 5) ?? '18:00',
+    break_minutes: initial?.break_minutes ?? 30,
+    grace_minutes: initial?.grace_minutes ?? 10,
+  })
+  const [rules, setRules] = useState({
+    code: initial?.code ?? '',
+    color: initial?.color ?? '#2a78d6',
+    early_exit_grace_minutes: initial?.early_exit_grace_minutes ?? 0,
+    half_day_threshold_minutes: initial?.half_day_threshold_minutes ?? '',
+    absent_threshold_minutes: initial?.absent_threshold_minutes ?? '',
+    ot_threshold_minutes: initial?.ot_threshold_minutes ?? '',
+    punch_window_before_minutes: initial?.punch_window_before_minutes ?? 180,
+    punch_window_after_minutes: initial?.punch_window_after_minutes ?? 360,
+  })
+  const [showRules, setShowRules] = useState(false)
+  const setB = (k) => (e) => setBase((f) => ({ ...f, [k]: e.target.value }))
+  const setR = (k) => (e) => setRules((r) => ({ ...r, [k]: e.target.value }))
+  const optional = (v) => (v === '' || v === null ? null : Number(v))
+  const preview = workingHours(base.start_time, base.end_time, Number(base.break_minutes))
+
+  function submit(e) {
     e.preventDefault()
-    if (!name.trim() || !branchId) return
+    if (!base.name.trim() || !base.branch_id) return
     onSave({
-      name: name.trim(),
-      branch_id: Number(branchId),
-      start_time: startTime,
-      end_time: endTime,
-      break_minutes: Number(breakMin),
-      grace_minutes: Number(graceMin),
+      name: base.name.trim(),
+      branch_id: Number(base.branch_id),
+      start_time: base.start_time,
+      end_time: base.end_time,
+      break_minutes: Number(base.break_minutes),
+      grace_minutes: Number(base.grace_minutes),
+      code: rules.code || null,
+      color: rules.color || null,
+      early_exit_grace_minutes: Number(rules.early_exit_grace_minutes) || 0,
+      half_day_threshold_minutes: optional(rules.half_day_threshold_minutes),
+      absent_threshold_minutes: optional(rules.absent_threshold_minutes),
+      ot_threshold_minutes: optional(rules.ot_threshold_minutes),
+      punch_window_before_minutes: Number(rules.punch_window_before_minutes) || 180,
+      punch_window_after_minutes: Number(rules.punch_window_after_minutes) || 360,
     })
   }
 
-  const preview = workingHours(startTime, endTime, Number(breakMin))
-
   return (
-    <form onSubmit={handleSubmit}
-      className="rounded-xl border border-blue-200 bg-blue-50 p-5 mb-4">
-      <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-4">
-        {initial ? 'Edit Shift' : 'New Shift'}
-      </p>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Shift Name <span className="text-red-500">*</span></label>
-          <input value={name} onChange={(e) => setName(e.target.value)} required
-            placeholder="e.g. Morning Shift, Night Shift"
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" />
+    <Modal size="lg" title={initial ? `Edit ${initial.name}` : 'New shift'} subtitle="Timings decide late marks, half days and overtime for everyone on this shift." onClose={onClose}
+      footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button type="submit" form="shift-form" loading={saving}>{initial ? 'Save changes' : 'Create shift'}</Button></>}>
+      <form id="shift-form" onSubmit={submit} className="space-y-4">
+        <ErrorBanner error={error} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Shift name" required><Input required autoFocus value={base.name} onChange={setB('name')} placeholder="e.g. General, Morning, Night" /></Field>
+          <Field label="Branch" required>
+            <Select required value={base.branch_id} onChange={setB('branch_id')}>
+              <option value="">Select branch</option>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </Select>
+          </Field>
+          <Field label="Starts" required><Input type="time" required value={base.start_time} onChange={setB('start_time')} /></Field>
+          <Field label="Ends" required><Input type="time" required value={base.end_time} onChange={setB('end_time')} /></Field>
+          <Field label="Break (minutes)" hint="Subtracted from working time and overtime."><Input type="number" min={0} max={120} value={base.break_minutes} onChange={setB('break_minutes')} /></Field>
+          <Field label="Grace period (minutes)" hint="Check-ins within this window aren’t marked late."><Input type="number" min={0} max={60} value={base.grace_minutes} onChange={setB('grace_minutes')} /></Field>
         </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Branch <span className="text-red-500">*</span></label>
-          <select value={branchId} onChange={(e) => setBranchId(e.target.value)} required
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500">
-            <option value="">Select branch</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Start Time <span className="text-red-500">*</span></label>
-          <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">End Time <span className="text-red-500">*</span></label>
-          <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Break (minutes)</label>
-          <input type="number" min={0} max={120} value={breakMin} onChange={(e) => setBreakMin(e.target.value)}
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Grace Period (minutes)</label>
-          <input type="number" min={0} max={60} value={graceMin} onChange={(e) => setGraceMin(e.target.value)}
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" />
-          <p className="text-[10px] text-slate-400 mt-0.5">Check-ins within grace period are marked present (not late)</p>
-        </div>
-      </div>
 
-      {/* Live preview */}
-      {preview && (
-        <div className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white border border-blue-200 px-3 py-2 text-xs text-slate-600">
-          <Clock size={13} className="text-blue-500" />
-          <span><strong>{toHHMM(startTime)}</strong> – <strong>{toHHMM(endTime)}</strong></span>
-          <span className="text-slate-400">·</span>
-          <span>{preview} working</span>
-          {Number(breakMin) > 0 && <span className="text-slate-400">({breakMin}m break)</span>}
-          {Number(graceMin) > 0 && <span className="text-slate-400">· {graceMin}m grace</span>}
-        </div>
-      )}
+        {preview && (
+          <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600 ring-1 ring-inset ring-slate-200">
+            <Clock size={13} className="text-blue-600" />
+            <strong className="text-slate-900">{hhmm(base.start_time)} – {hhmm(base.end_time)}</strong> · {preview} working
+            {Number(base.break_minutes) > 0 && <span className="text-slate-400">({base.break_minutes}m break)</span>}
+          </div>
+        )}
 
-      <div className="mt-4 flex gap-2">
-        <button type="submit" disabled={saving}
-          className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-          {saving && <span className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />}
-          {initial ? 'Save Changes' : 'Create Shift'}
-        </button>
-        <button type="button" onClick={onCancel}
-          className="rounded-md border px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
-          Cancel
-        </button>
-      </div>
-    </form>
+        <div className="rounded-lg border border-slate-200">
+          <button type="button" onClick={() => setShowRules((v) => !v)} className="flex w-full items-center justify-between px-4 py-2.5 text-left text-[13px] font-medium text-slate-700">
+            Attendance rules <span className="flex items-center gap-1 text-xs font-normal text-slate-500">half day, absent, overtime, punch window<ChevronDown size={14} className={cn('transition-transform', showRules && 'rotate-180')} /></span>
+          </button>
+          {showRules && (
+            <div className="grid gap-4 border-t border-slate-200 p-4 sm:grid-cols-2">
+              {RULES.map(([key, label, type, hint]) => (
+                <Field key={key} label={label} hint={hint}><Input type={type} min={0} value={rules[key] ?? ''} onChange={setR(key)} /></Field>
+              ))}
+              <Field label="Roster colour">
+                <input type="color" value={rules.color} onChange={setR('color')} className="h-9 w-16 cursor-pointer rounded-lg border border-slate-200 bg-white" />
+              </Field>
+            </div>
+          )}
+        </div>
+      </form>
+    </Modal>
   )
 }
 
+/** Work shifts per branch: timings, grace and the attendance rules they apply. */
 export default function ShiftSettingsPage() {
   const qc = useQueryClient()
   const activeBranchId = useAuthStore((s) => s.activeBranchId)
   const { canManageEmployees } = useRole()
-  const [showAdd, setShowAdd] = useState(false)
-  const [editId, setEditId] = useState(null)
+  const [editing, setEditing] = useState(null) // null | 'new' | shift
+  const [deleting, setDeleting] = useState(null)
   const [filterBranch, setFilterBranch] = useState('')
   const [assignShift, setAssignShift] = useState(null)
 
@@ -141,175 +149,98 @@ export default function ShiftSettingsPage() {
   })
   const shifts = Array.isArray(data) ? data : []
 
-  const createMut = useMutation({
-    mutationFn: (d) => shiftApi.create(d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['shifts'] }); setShowAdd(false) },
-  })
-  const updateMut = useMutation({
-    mutationFn: ({ id, ...d }) => shiftApi.update(id, d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['shifts'] }); setEditId(null) },
-  })
+  const done = () => { qc.invalidateQueries({ queryKey: ['shifts'] }); setEditing(null) }
+  const createMut = useMutation({ mutationFn: (d) => shiftApi.create(d), onSuccess: done })
+  const updateMut = useMutation({ mutationFn: ({ id, ...d }) => shiftApi.update(id, d), onSuccess: done })
   const deleteMut = useMutation({
     mutationFn: (id) => shiftApi.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['shifts'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['shifts'] }); setDeleting(null) },
   })
 
-  const SHIFT_COLORS = [
-    'bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-teal-500',
-    'bg-orange-500', 'bg-rose-500', 'bg-green-600', 'bg-slate-600',
-  ]
-
   return (
-    <div className="max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Shift Settings</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Define work shifts — name, timings, break, and grace period — then assign them to employees below.
-        </p>
-      </div>
+    <div>
+      <PageHeader icon={Clock} title="Shifts" subtitle="Working hours, breaks and grace periods — assign a shift to people once it’s set up."
+        actions={<>
+          {branches.length > 1 && (
+            <Select className="w-auto min-w-44" value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)}>
+              <option value="">All branches</option>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </Select>
+          )}
+          {canManageEmployees && <Button icon={Plus} onClick={() => setEditing('new')}>Add shift</Button>}
+        </>} />
 
-      {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-slate-500">{shifts.length} shift{shifts.length !== 1 ? 's' : ''}</p>
-          <select value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)}
-            className="rounded-md border bg-white px-3 py-1.5 text-sm text-slate-700 outline-none focus:border-blue-500">
-            <option value="">All Branches</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-        </div>
-        {canManageEmployees && !showAdd && !editId && (
-          <button onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-            <Plus size={15} /> Add Shift
-          </button>
-        )}
-      </div>
-
-      {/* Add form */}
-      {showAdd && (
-        <ShiftForm
-          branches={branches}
-          activeBranchId={activeBranchId}
-          onSave={(d) => createMut.mutate(d)}
-          onCancel={() => setShowAdd(false)}
-          saving={createMut.isPending}
-        />
-      )}
-
-      {createMut.isError && (
-        <div className="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-600">
-          {createMut.error?.response?.data?.message ?? 'Failed to create shift.'}
-        </div>
-      )}
-
-      {/* List */}
-      {isLoading ? (
-        <div className="flex justify-center py-12"><Spinner className="h-7 w-7" /></div>
-      ) : shifts.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 py-14 text-center">
-          <Clock size={32} className="mx-auto text-slate-300 mb-3" />
-          <p className="text-slate-400 text-sm">No shifts configured yet.</p>
-          <p className="text-slate-400 text-xs mt-1">Add a shift to assign employees to work schedules.</p>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {shifts.map((shift, idx) => {
-            const color = SHIFT_COLORS[idx % SHIFT_COLORS.length]
-            const hrs = workingHours(shift.start_time, shift.end_time, shift.break_minutes)
-            const isEditing = editId === shift.id
-
-            if (isEditing) {
+      {isLoading ? <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div>
+        : shifts.length === 0 ? (
+          <Card><EmptyState icon={Clock} title="No shifts yet" description="Add a shift, then assign people to it."
+            action={canManageEmployees && <Button icon={Plus} onClick={() => setEditing('new')}>Add shift</Button>} /></Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {shifts.map((shift) => {
+              const hrs = workingHours(shift.start_time, shift.end_time, shift.break_minutes)
+              const color = shift.color || '#2a78d6'
               return (
-                <div key={shift.id} className="sm:col-span-2">
-                  <ShiftForm
-                    initial={shift}
-                    branches={branches}
-                    activeBranchId={activeBranchId}
-                    onSave={(d) => updateMut.mutate({ id: shift.id, ...d })}
-                    onCancel={() => setEditId(null)}
-                    saving={updateMut.isPending}
-                  />
-                </div>
-              )
-            }
-
-            return (
-              <div key={shift.id}
-                className="rounded-2xl border bg-white shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                {/* Color bar */}
-                <div className={cn('h-1.5', color)} />
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl text-white font-bold text-sm shrink-0', color)}>
-                        {shift.name?.[0]?.toUpperCase()}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-slate-900">{shift.name}</h3>
-                        <p className="text-xs text-slate-400">{shift.branch?.name ?? '—'}</p>
-                      </div>
+                <Card key={shift.id} padded={false} className="flex flex-col overflow-hidden">
+                  <div className="h-1" style={{ backgroundColor: color }} />
+                  <div className="flex items-start gap-3 p-5 pb-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white" style={{ backgroundColor: color }}>
+                      {(shift.code || shift.name?.[0] || '?').slice(0, 3).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-[15px] font-semibold text-slate-900">{shift.name}</h3>
+                      <p className="truncate text-xs text-slate-500">{shift.branch?.name ?? '—'}</p>
                     </div>
                     {canManageEmployees && (
-                      <div className="flex gap-1 shrink-0">
-                        <button onClick={() => setAssignShift(shift)} title="Assign to employees"
-                          className="rounded-lg p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50">
-                          <Users size={14} />
-                        </button>
-                        <button onClick={() => { setEditId(shift.id); setShowAdd(false) }}
-                          className="rounded-lg p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => { if (confirm(`Delete "${shift.name}"? Employees assigned to this shift will be unaffected.`)) deleteMut.mutate(shift.id) }}
-                          className="rounded-lg p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50">
-                          <Trash2 size={14} />
-                        </button>
+                      <div className="flex gap-0.5">
+                        <IconButton icon={Pencil} label="Edit" tone="primary" onClick={() => setEditing(shift)} />
+                        <IconButton icon={Trash2} label="Delete" tone="danger" onClick={() => setDeleting(shift)} />
                       </div>
                     )}
                   </div>
-
-                  {/* Time details */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="rounded-lg bg-slate-50 px-3 py-2">
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Start</p>
-                      <p className="font-semibold text-slate-800">{toHHMM(shift.start_time)}</p>
-                    </div>
-                    <div className="rounded-lg bg-slate-50 px-3 py-2">
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">End</p>
-                      <p className="font-semibold text-slate-800">{toHHMM(shift.end_time)}</p>
-                    </div>
-                    <div className="rounded-lg bg-slate-50 px-3 py-2">
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Break</p>
-                      <p className="font-semibold text-slate-800">{shift.break_minutes ?? 0}m</p>
-                    </div>
-                    <div className="rounded-lg bg-slate-50 px-3 py-2">
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Grace</p>
-                      <p className="font-semibold text-slate-800">{shift.grace_minutes ?? 0}m</p>
-                    </div>
+                  <div className="px-5 pb-4">
+                    <p className="text-[22px] font-semibold tabular-nums tracking-tight text-slate-900">{hhmm(shift.start_time)} – {hhmm(shift.end_time)}</p>
+                    <p className="text-xs text-slate-500">{hrs ? `${hrs} working` : ''}{shift.break_minutes ? ` · ${shift.break_minutes}m break` : ''} · {shift.grace_minutes ?? 0}m grace</p>
                   </div>
-
-                  {hrs && (
-                    <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
-                      <Clock size={11} />
-                      <span>{hrs} net working time</span>
+                  {canManageEmployees && (
+                    <div className="mt-auto border-t border-slate-100 px-5 py-3">
+                      <Button variant="soft" size="sm" icon={Users} onClick={() => setAssignShift(shift)}>Assign people</Button>
                     </div>
                   )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+                </Card>
+              )
+            })}
+          </div>
+        )}
 
-      <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500 space-y-1">
-        <p><strong>Break minutes</strong> are subtracted from total hours when calculating daily working time and overtime.</p>
-        <p><strong>Grace period</strong> — check-ins within this window after shift start are marked <em>present</em> rather than <em>late</em>.</p>
-        <p>After creating a shift, click the <strong><Users size={11} className="inline -mt-0.5" /> people icon</strong> on its card to assign it to employees.</p>
+      <div className="mt-6 flex items-start gap-2.5 rounded-lg border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600">
+        <Info size={15} className="mt-0.5 shrink-0 text-blue-600" />
+        <p>Rosters override the assigned shift for specific days. People without an assigned shift follow their branch’s default shift.</p>
       </div>
 
-      {assignShift && (
-        <AssignShiftModal shift={assignShift} branches={branches} onClose={() => setAssignShift(null)} />
+      {editing && (
+        <ShiftModal
+          initial={editing === 'new' ? null : editing}
+          branches={branches}
+          activeBranchId={activeBranchId}
+          saving={createMut.isPending || updateMut.isPending}
+          error={createMut.error || updateMut.error}
+          onSave={(d) => (editing === 'new' ? createMut.mutate(d) : updateMut.mutate({ id: editing.id, ...d }))}
+          onClose={() => { setEditing(null); createMut.reset(); updateMut.reset() }}
+        />
       )}
+
+      {deleting && (
+        <Modal title="Delete shift" size="sm" onClose={() => { setDeleting(null); deleteMut.reset() }}
+          footer={<>
+            <Button variant="secondary" onClick={() => { setDeleting(null); deleteMut.reset() }}>Cancel</Button>
+            <Button variant="danger" icon={Trash2} loading={deleteMut.isPending} onClick={() => deleteMut.mutate(deleting.id)}>Delete</Button>
+          </>}>
+          <ErrorBanner error={deleteMut.error} className="mb-3" />
+          <p className="text-[13px] text-slate-600">Delete <strong className="text-slate-900">{deleting.name}</strong>? This can’t be undone.</p>
+        </Modal>
+      )}
+
+      {assignShift && <AssignShiftModal shift={assignShift} branches={branches} onClose={() => setAssignShift(null)} />}
     </div>
   )
 }
@@ -318,19 +249,15 @@ function AssignShiftModal({ shift, branches, onClose }) {
   const [branchId, setBranchId] = useState(shift.branch_id ?? '')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(new Set())
-  const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().slice(0, 10))
-  const [result, setResult] = useState(null)
+  const [effectiveFrom, setEffectiveFrom] = useState(new Date().toLocaleDateString('en-CA'))
 
   const { data: employees, isLoading } = useQuery({
     queryKey: ['employees', 'for-shift-assign', branchId],
     queryFn: () => employeeApi.list({ branch_id: branchId || undefined, status: 'active', per_page: 200 }).then((r) => r.data?.data ?? []),
     enabled: !!branchId,
   })
-
   const mutation = useMutation({
     mutationFn: () => shiftApi.assignBulk(shift.id, { employee_ids: [...selected], effective_from: effectiveFrom }),
-    onSuccess: (res) => setResult({ message: res.data?.message }),
-    onError: (err) => setResult({ error: err.response?.data?.message ?? 'Could not assign the shift.' }),
   })
 
   const filtered = (employees ?? []).filter((emp) => {
@@ -338,90 +265,67 @@ function AssignShiftModal({ shift, branches, onClose }) {
     const q = search.toLowerCase()
     return `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(q) || emp.employee_code.toLowerCase().includes(q)
   })
+  const toggle = (id) => setSelected((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next })
+  const toggleAll = () => setSelected((prev) => (prev.size === filtered.length ? new Set() : new Set(filtered.map((e) => e.id))))
 
-  function toggle(id) {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
+  if (mutation.isSuccess) {
+    return (
+      <Modal size="sm" title={`Assigned ${shift.name}`} onClose={onClose} footer={<Button onClick={onClose}>Done</Button>}>
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[13px] text-emerald-700">
+          <Check size={15} />{mutation.data?.data?.message ?? 'Shift assigned.'}
+        </div>
+      </Modal>
+    )
   }
-
-  function toggleAll() {
-    setSelected((prev) => prev.size === filtered.length ? new Set() : new Set(filtered.map((e) => e.id)))
-  }
-
-  const field = 'w-full rounded-xl border-0 bg-slate-100/80 px-3.5 py-2 text-sm text-slate-900 outline-none ring-1 ring-transparent focus:bg-white focus:ring-2 focus:ring-blue-500/60'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b px-5 py-4">
-          <h2 className="font-semibold text-slate-900">Assign "{shift.name}" to Employees</h2>
-          <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-slate-100"><X size={16} /></button>
+    <Modal title={`Assign ${shift.name}`} subtitle={`${hhmm(shift.start_time)} – ${hhmm(shift.end_time)}`} onClose={onClose}
+      footer={<>
+        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button disabled={selected.size === 0} loading={mutation.isPending} onClick={() => mutation.mutate()}>
+          Assign {selected.size || ''} {selected.size === 1 ? 'person' : 'people'}
+        </Button>
+      </>}>
+      <div className="space-y-3">
+        <ErrorBanner error={mutation.error} />
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Branch">
+            <Select value={branchId} onChange={(e) => { setBranchId(e.target.value); setSelected(new Set()) }}>
+              <option value="">Select branch</option>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </Select>
+          </Field>
+          <Field label="Effective from"><Input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} /></Field>
         </div>
-
-        {result ? (
-          <div className="p-5">
-            {result.error ? (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[13px] text-rose-600">{result.error}</div>
-            ) : (
-              <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[13px] text-emerald-700">
-                <Check size={15} /> {result.message}
-              </div>
-            )}
-            <button onClick={onClose} className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-              Done
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-3 border-b p-5">
-              <div className="grid grid-cols-2 gap-3">
-                <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setSelected(new Set()) }} className={field}>
-                  <option value="">Select branch…</option>
-                  {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-                <input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} className={field} />
-              </div>
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search employees…" className={field} />
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto p-2">
-              {!branchId ? (
-                <p className="py-8 text-center text-[13px] text-slate-400">Select a branch to list employees.</p>
-              ) : isLoading ? (
-                <div className="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>
-              ) : filtered.length === 0 ? (
-                <p className="py-8 text-center text-[13px] text-slate-400">No employees found.</p>
-              ) : (
-                <>
-                  <label className="flex cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-[12.5px] font-semibold text-blue-600 hover:bg-blue-50">
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Input className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search people" />
+        </div>
+        <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-200">
+          {!branchId ? <p className="py-8 text-center text-[13px] text-slate-400">Pick a branch to list its people.</p>
+            : isLoading ? <div className="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>
+            : filtered.length === 0 ? <p className="py-8 text-center text-[13px] text-slate-400">No one found.</p>
+            : (
+              <ul className="divide-y divide-slate-100">
+                <li>
+                  <label className="flex cursor-pointer items-center gap-2.5 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
                     <input type="checkbox" checked={selected.size === filtered.length} onChange={toggleAll} className="h-4 w-4 accent-blue-600" />
                     Select all ({filtered.length})
                   </label>
-                  {filtered.map((emp) => (
-                    <label key={emp.id} className="flex cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 hover:bg-slate-50">
+                </li>
+                {filtered.map((emp) => (
+                  <li key={emp.id}>
+                    <label className="flex cursor-pointer items-center gap-2.5 px-3 py-2 hover:bg-slate-50">
                       <input type="checkbox" checked={selected.has(emp.id)} onChange={() => toggle(emp.id)} className="h-4 w-4 accent-blue-600" />
-                      <span className="text-[13px] font-medium text-slate-700">{emp.first_name} {emp.last_name}</span>
-                      <span className="text-[11px] text-slate-400">{emp.employee_code}</span>
+                      <span className="text-[13px] font-medium text-slate-800">{emp.first_name} {emp.last_name}</span>
+                      <span className="text-xs text-slate-400">{emp.employee_code}</span>
                     </label>
-                  ))}
-                </>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 border-t p-5">
-              <button onClick={onClose} className="rounded-xl border px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
-              <button onClick={() => mutation.mutate()} disabled={selected.size === 0 || mutation.isPending}
-                className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 disabled:opacity-60">
-                {mutation.isPending ? 'Assigning…' : `Assign to ${selected.size || ''} Employee${selected.size === 1 ? '' : 's'}`}
-              </button>
-            </div>
-          </>
-        )}
+                  </li>
+                ))}
+              </ul>
+            )}
+        </div>
       </div>
-    </div>
+    </Modal>
   )
 }

@@ -6,124 +6,80 @@ import {
 } from 'lucide-react'
 import { biometricApi } from '@/lib/api/biometric'
 import { employeeApi } from '@/lib/api/employees'
-import { useRole } from '@/hooks/useRole'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn } from '@/lib/utils'
+import { PageHeader, Card, Button, StatusPill, EmptyState, ErrorBanner } from '@/components/ui/kit'
 
 const DEFAULT_API_URL = 'https://bio.kochi.digital/api/fetch-punches'
 const today = () => new Date().toISOString().slice(0, 10)
 
-function StatusPill({ status }) {
-  const map = {
-    enabled: { label: 'Enabled', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20', dot: 'bg-emerald-500' },
-    disabled: { label: 'Disabled', cls: 'bg-amber-50 text-amber-700 ring-amber-600/20', dot: 'bg-amber-500' },
-    unconfigured: { label: 'Not configured', cls: 'bg-slate-50 text-slate-500 ring-slate-500/20', dot: 'bg-slate-400' },
-  }
-  const m = map[status]
-  return (
-    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset', m.cls)}>
-      <span className={cn('h-1.5 w-1.5 rounded-full', m.dot)} />
-      {m.label}
-    </span>
-  )
+const STATUS = {
+  enabled: { tone: 'green', label: 'Syncing' },
+  disabled: { tone: 'amber', label: 'Paused' },
+  unconfigured: { tone: 'slate', label: 'Not set up' },
 }
 
 export default function BiometricSettingsPage() {
   const qc = useQueryClient()
-  const { isSuperAdmin } = useRole()
   const [configModal, setConfigModal] = useState(null) // branch
   const [syncModal, setSyncModal] = useState(null) // branch
   const [mapModal, setMapModal] = useState(null) // branch
 
-  const { data: branches, isLoading, isError } = useQuery({
+  const { data: branches = [], isLoading, error } = useQuery({
     queryKey: ['biometric-branches'],
     queryFn: () => biometricApi.listBranches().then((r) => r.data?.data ?? []),
   })
+  const live = branches.filter((b) => b.biometric_config?.enabled).length
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-600 to-blue-600 text-white shadow-lg shadow-blue-600/20">
-          <Fingerprint size={20} />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Biometric Attendance Integration</h1>
-          <p className="text-[13px] text-slate-500">
-            Connect each branch's biometric device provider to automatically pull attendance punches.
-          </p>
-        </div>
-      </div>
+    <div>
+      <PageHeader icon={Fingerprint} title="Biometric devices"
+        subtitle={branches.length ? `${live} of ${branches.length} branch${branches.length === 1 ? '' : 'es'} pulling punches from devices automatically.` : 'Pull punches from each branch’s attendance devices instead of manual entry.'} />
 
-      {isLoading && <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div>}
-      {isError && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">
-          Failed to load branches. You may not have permission to manage biometric settings.
-        </div>
-      )}
-
-      {!isLoading && !isError && (
-        <div className="space-y-3">
-          {(branches ?? []).map((branch) => {
-            const cfg = branch.biometric_config
-            const status = !cfg ? 'unconfigured' : cfg.enabled ? 'enabled' : 'disabled'
-
-            return (
-              <div key={branch.id} className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-                      <Fingerprint size={16} />
-                    </div>
-                    <div>
-                      <p className="text-[14px] font-bold text-slate-900">{branch.name}</p>
-                      <div className="mt-0.5 flex items-center gap-2 text-[12px] text-slate-400">
-                        {cfg ? <span>Institution code: <span className="font-mono font-semibold text-slate-600">{cfg.ins_code}</span></span> : <span>No integration set up yet</span>}
+      <ErrorBanner error={error} message={error ? 'Couldn’t load branches — you may not have access to biometric settings.' : undefined} className="mb-4" />
+      {isLoading ? <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div> : !error && (
+        <Card padded={false}>
+          {branches.length === 0 ? <EmptyState icon={Fingerprint} title="No branches available" /> : (
+            <ul className="divide-y divide-slate-100">
+              {branches.map((branch) => {
+                const cfg = branch.biometric_config
+                const status = !cfg ? 'unconfigured' : cfg.enabled ? 'enabled' : 'disabled'
+                return (
+                  <li key={branch.id} className="px-5 py-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset',
+                        status === 'enabled' ? 'bg-emerald-50 text-emerald-600 ring-emerald-200' : 'bg-slate-50 text-slate-400 ring-slate-200')}>
+                        <Fingerprint size={18} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-[14px] font-semibold text-slate-900">{branch.name}</p>
+                          <StatusPill tone={STATUS[status].tone} label={STATUS[status].label} />
+                        </div>
+                        <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-slate-500">
+                          {cfg ? <span>Institution code <span className="font-mono font-semibold text-slate-700">{cfg.ins_code}</span></span> : <span>No device integration yet</span>}
+                          {cfg?.last_synced_at && (
+                            <span className="flex items-center gap-1"><Clock size={11} />Last synced {new Date(cfg.last_synced_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" size="sm" icon={Settings2} onClick={() => setConfigModal(branch)}>{cfg ? 'Configure' : 'Set up'}</Button>
+                        <Button variant="secondary" size="sm" icon={IdCard} onClick={() => setMapModal(branch)}>Map codes</Button>
+                        <Button size="sm" icon={RefreshCw} disabled={status !== 'enabled'} onClick={() => setSyncModal(branch)}>Sync now</Button>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <StatusPill status={status} />
-                    {cfg?.last_synced_at && (
-                      <span className="hidden items-center gap-1 text-[11px] text-slate-400 sm:flex">
-                        <Clock size={11} /> Last synced {new Date(cfg.last_synced_at).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                    {cfg?.last_sync_status === 'failed' && (
+                      <div className="mt-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2 text-[13px] text-rose-700">
+                        <AlertCircle size={14} className="mt-0.5 shrink-0" />Last sync failed: {cfg.last_sync_message}
+                      </div>
                     )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button onClick={() => setConfigModal(branch)}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
-                      <Settings2 size={13} /> Configure
-                    </button>
-                    <button onClick={() => setMapModal(branch)}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
-                      <IdCard size={13} /> Map Codes
-                    </button>
-                    <button onClick={() => setSyncModal(branch)} disabled={status !== 'enabled'}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-[13px] font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none">
-                      <RefreshCw size={13} /> Sync Now
-                    </button>
-                  </div>
-                </div>
-
-                {cfg?.last_sync_status === 'failed' && (
-                  <div className="mt-3 flex items-start gap-2 rounded-xl bg-rose-50 px-3.5 py-2.5 text-[12.5px] text-rose-600">
-                    <AlertCircle size={14} className="mt-0.5 shrink-0" />
-                    Last sync failed: {cfg.last_sync_message}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-
-          {(branches ?? []).length === 0 && (
-            <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 py-16 text-center">
-              <Fingerprint size={26} className="mb-2 text-slate-300" />
-              <p className="text-sm text-slate-400">No branches available.</p>
-            </div>
+                  </li>
+                )
+              })}
+            </ul>
           )}
-        </div>
+        </Card>
       )}
 
       {configModal && (
@@ -167,7 +123,7 @@ function ConfigModal({ branch, onClose, onSaved }) {
     mutation.mutate(form)
   }
 
-  const field = 'w-full rounded-xl border-0 bg-slate-100/80 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none ring-1 ring-transparent transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/60'
+  const field = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -249,7 +205,7 @@ function SyncModal({ branch, onClose }) {
   })
 
   const log = result?.data
-  const field = 'w-full rounded-xl border-0 bg-slate-100/80 px-3.5 py-2.5 text-sm text-slate-900 outline-none ring-1 ring-transparent transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/60'
+  const field = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-xs text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -390,7 +346,7 @@ function MapCodesModal({ branch, onClose }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or employee code…"
-            className="w-full rounded-xl border-0 bg-slate-100/80 px-3.5 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none ring-1 ring-transparent focus:bg-white focus:ring-2 focus:ring-blue-500/60"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15"
           />
         </div>
 

@@ -68,7 +68,7 @@ export async function requestBackgroundSync() {
     if ('sync' in reg) {
       await reg.sync.register('sync-punches')
     }
-  } catch (_) {
+  } catch {
     // Background Sync not supported — online handler will cover it
   }
 }

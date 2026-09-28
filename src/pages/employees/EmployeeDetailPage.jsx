@@ -7,9 +7,10 @@ import {
   Building2, CalendarDays, Wallet, FolderOpen, Clock, StickyNote,
   Users as UsersIcon,
 } from 'lucide-react'
-import { employeeApi } from '@/lib/api/employees'
+import { employeeApi, openEmployeeDocument } from '@/lib/api/employees'
 import { attendanceApi } from '@/lib/api/attendance'
 import { leaveApi } from '@/lib/api/leaves'
+import { MyDetailsModal } from '@/components/employees/MyDetailsModal'
 import { payrollApi, salaryApi, openPayslipPdf } from '@/lib/api/payroll'
 import { shiftApi } from '@/lib/api/shifts'
 import { useAuthStore } from '@/store/authStore'
@@ -51,10 +52,12 @@ export default function EmployeeDetailPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const currentUser = useAuthStore((s) => s.user)
-  const { canManageEmployees, isSuperAdmin, hasRole, can } = useRole()
+  const { canManageEmployees, can, hasFeature } = useRole()
   const [activeTab, setActiveTab] = useState('overview')
   const [uploading, setUploading] = useState(false)
   const [shiftModalOpen, setShiftModalOpen] = useState(false)
+  const [editingMine, setEditingMine] = useState(false)
+  const [now] = useState(() => Date.now()) // for tenure; fixed per visit
   const avatarInputRef = useRef(null)
 
   const { data: emp, isLoading } = useQuery({
@@ -141,16 +144,16 @@ export default function EmployeeDetailPage() {
   if (!emp) return <p className="py-20 text-center text-slate-400">Employee not found.</p>
 
   const tenure = emp.date_of_joining
-    ? Math.floor((Date.now() - new Date(emp.date_of_joining).getTime()) / (365.25 * 24 * 3600 * 1000) * 10) / 10
+    ? Math.floor((now - new Date(emp.date_of_joining).getTime()) / (365.25 * 24 * 3600 * 1000) * 10) / 10
     : null
 
   // Salary is sensitive: branch admin/HR/super admin can see it for anyone in
   // their branch, and an employee can always see their own — but a manager
   // or coworker viewing someone else's profile should not.
-  const canManageSalary = isSuperAdmin || hasRole('branch_admin', 'hr') || can('payroll.manage')
+  const canManageSalary = can('payroll.manage')
   const canViewSalary = canManageSalary || can('payroll.view') || currentUser?.employee_id === emp.id
 
-  const TABS = canViewSalary
+  const TABS = canViewSalary && hasFeature('payroll')
     ? [...BASE_TABS, { key: 'payroll', label: 'Payroll', icon: Wallet }]
     : BASE_TABS
 
@@ -164,15 +167,21 @@ export default function EmployeeDetailPage() {
         >
           <ArrowLeft size={15} /> All Employees
         </button>
+        {!canManageEmployees && currentUser?.employee_id === emp.id && (
+          <button onClick={() => setEditingMine(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-[13px] font-semibold text-white shadow-xs transition-all hover:bg-blue-700">
+            <Pencil size={13} /> Update my details
+          </button>
+        )}
         {canManageEmployees && (
           <div className="flex gap-2">
             <Link
               to={`/employees/${emp.id}/edit`}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-700 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-[13px] font-semibold text-white shadow-xs transition-all hover:bg-blue-700 active:scale-[0.98]"
             >
               <Pencil size={13} /> Edit Profile
             </Link>
-            {isSuperAdmin && emp.status !== 'terminated' && (
+            {canManageEmployees && emp.status !== 'terminated' && (
               <button
                 onClick={() => { if (window.confirm(`Terminate ${emp.first_name} ${emp.last_name}? Their status will be set to terminated.`)) terminateMutation.mutate() }}
                 disabled={terminateMutation.isPending}
@@ -185,19 +194,21 @@ export default function EmployeeDetailPage() {
         )}
       </div>
 
+      {editingMine && <MyDetailsModal employee={emp} onClose={() => setEditingMine(false)} />}
+
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         {/* ══ Left: profile sidebar ══════════════════════ */}
         <div className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           {/* Identity card */}
-          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-            <div className="h-20 bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600" />
+          <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
+            <div className="h-20 bg-gradient-to-r from-blue-700 to-blue-500" />
             <div className="px-5 pb-5">
               <div className="relative -mt-10 mb-3 inline-block">
                 {emp.avatar_url ? (
                   <img src={emp.avatar_url} alt={emp.full_name}
-                    className="h-20 w-20 rounded-2xl border-4 border-white bg-white object-cover shadow-md" />
+                    className="h-20 w-20 rounded-xl border-4 border-white bg-white object-cover shadow-md" />
                 ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-white bg-gradient-to-br from-blue-500 to-indigo-600 text-2xl font-bold text-white shadow-md">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-xl border-4 border-white bg-gradient-to-br from-blue-500 to-indigo-600 text-2xl font-bold text-white shadow-md">
                     {emp.first_name?.[0]}{emp.last_name?.[0]}
                   </div>
                 )}
@@ -247,7 +258,7 @@ export default function EmployeeDetailPage() {
           </div>
 
           {/* At-a-glance card */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm">
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">At a Glance</p>
             <div className="space-y-3">
               <GlanceRow icon={Building2} label="Branch" value={emp.branch?.name} />
@@ -265,7 +276,7 @@ export default function EmployeeDetailPage() {
 
           {/* Direct reports */}
           {(emp.direct_reports?.length ?? 0) > 0 && (
-            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+            <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm">
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Direct Reports · {emp.direct_reports.length}
               </p>
@@ -289,7 +300,7 @@ export default function EmployeeDetailPage() {
         {/* ══ Right: tabbed content ══════════════════════ */}
         <div className="min-w-0">
           {/* Tabs */}
-          <div className="mb-5 flex gap-1 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-sm">
+          <div className="mb-5 flex gap-1 overflow-x-auto rounded-xl border border-slate-200/80 bg-white p-1.5 shadow-sm">
             {TABS.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
@@ -297,7 +308,7 @@ export default function EmployeeDetailPage() {
                 className={cn(
                   'inline-flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2 text-[13px] font-semibold transition-all',
                   activeTab === key
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+                    ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
                 )}
               >
@@ -318,8 +329,12 @@ export default function EmployeeDetailPage() {
                   ['Marital Status', emp.marital_status, true],
                   ['Blood Group', emp.blood_group],
                   ['Nationality', emp.nationality],
-                  ['National ID', emp.national_id],
-                  ['Tax ID (PAN)', emp.tax_id],
+                  ['Aadhaar / National ID', emp.national_id],
+                  ['PAN', emp.tax_id],
+                  ['UAN (PF)', emp.uan],
+                  ['ESI IP Number', emp.esi_number],
+                  ['Tax Regime', emp.tax_regime ? `${emp.tax_regime === 'old' ? 'Old' : 'New'} regime` : null],
+                  ['Statutory', [emp.pf_opted_out && 'PF opted out', emp.pt_exempt && 'PT exempt'].filter(Boolean).join(' · ') || 'PF · PT applicable'],
                 ]} />
               </DetailCard>
 
@@ -338,6 +353,7 @@ export default function EmployeeDetailPage() {
                 <FieldGrid fields={[
                   ['Employee Code', emp.employee_code],
                   ['Biometric Device Code', emp.biometric_emp_code],
+                  ['Weekly Off', Array.isArray(emp.weekly_off_days) ? (emp.weekly_off_days.map((d) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ') || 'None') : 'Branch default'],
                   ['Branch', emp.branch?.name],
                   ['Department', emp.department?.name],
                   ['Designation', emp.designation?.title],
@@ -350,7 +366,7 @@ export default function EmployeeDetailPage() {
                 ]} />
               </DetailCard>
 
-              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+              <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
@@ -400,7 +416,7 @@ export default function EmployeeDetailPage() {
               </div>
 
               {emp.notes && canManageEmployees && (
-                <div className="rounded-2xl border border-amber-200/70 bg-amber-50/70 p-5">
+                <div className="rounded-xl border border-amber-200/70 bg-amber-50/70 p-5">
                   <div className="mb-2 flex items-center gap-2">
                     <StickyNote size={14} className="text-amber-500" />
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-600">HR Notes — internal only</p>
@@ -413,12 +429,12 @@ export default function EmployeeDetailPage() {
 
           {/* ── Documents ── */}
           {activeTab === 'documents' && (
-            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+            <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <SectionTitle icon={FolderOpen} title="Documents" />
                 {canManageEmployees && (
                   <label className={cn(
-                    'inline-flex cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-3.5 py-2 text-[13px] font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-700',
+                    'inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-[13px] font-semibold text-white shadow-xs transition-all hover:bg-blue-700',
                     uploading && 'cursor-not-allowed opacity-60'
                   )}>
                     {uploading ? <Spinner className="h-3.5 w-3.5 border-white border-t-transparent" /> : <Upload size={13} />}
@@ -437,10 +453,10 @@ export default function EmployeeDetailPage() {
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-500 shadow-sm">
                       <FileText size={15} />
                     </div>
-                    <a href={doc.original_url} target="_blank" rel="noopener noreferrer"
-                      className="min-w-0 flex-1 truncate text-[13px] font-medium text-slate-700 hover:text-blue-700 hover:underline">
+                    <button type="button" onClick={() => openEmployeeDocument(emp.id, doc)}
+                      className="min-w-0 flex-1 truncate text-left text-[13px] font-medium text-slate-700 hover:text-blue-700 hover:underline">
                       {doc.file_name}
-                    </a>
+                    </button>
                     <span className="text-[11px] text-slate-400">{(doc.size / 1024).toFixed(1)} KB</span>
                     {canManageEmployees && (
                       <button onClick={() => handleDeleteDoc(doc.id)}
@@ -518,7 +534,7 @@ export default function EmployeeDetailPage() {
                 </div>
               )}
 
-              <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+              <div className="rounded-xl border border-slate-200/80 bg-white shadow-sm">
                 <div className="border-b border-slate-100 p-5 pb-4">
                   <SectionTitle icon={Landmark} title="Salary Structure" />
                 </div>
@@ -615,12 +631,12 @@ function AssignShiftModal({ employee, current, onClose, onSaved }) {
     mutation.mutate()
   }
 
-  const field = 'w-full rounded-xl border-0 bg-slate-100/80 px-3.5 py-2.5 text-sm text-slate-900 outline-none ring-1 ring-transparent focus:bg-white focus:ring-2 focus:ring-blue-500/60'
+  const field = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-xs text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-xl">
+      <div className="relative w-full max-w-sm rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="font-semibold text-slate-900">{current ? 'Change' : 'Assign'} Shift</h2>
           <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-slate-100"><X size={16} /></button>
@@ -656,7 +672,7 @@ function AssignShiftModal({ employee, current, onClose, onSaved }) {
             <button type="button" onClick={onClose}
               className="rounded-xl border px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
             <button type="submit" disabled={mutation.isPending || !shiftId}
-              className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 disabled:opacity-60">
+              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-60">
               {mutation.isPending ? 'Saving…' : 'Save'}
             </button>
           </div>
@@ -697,7 +713,7 @@ function SectionTitle({ icon: Icon, title }) {
 
 function DetailCard({ icon, title, children }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm">
       <div className="mb-4 border-b border-slate-100 pb-3.5">
         <SectionTitle icon={icon} title={title} />
       </div>
@@ -734,7 +750,7 @@ function EmptyState({ icon: Icon, text }) {
 
 function DataTableCard({ icon, title, loading, headers, rows, empty }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
       <div className="border-b border-slate-100 p-5 pb-4">
         <SectionTitle icon={icon} title={title} />
       </div>

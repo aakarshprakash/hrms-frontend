@@ -19,4 +19,10 @@ export const attendanceApi = {
   reportDailyExport: (params) => api.get('/attendance/reports/daily/export', { params, responseType: 'blob' }),
   musterRoll: (params) => api.get('/attendance/reports/muster-roll', { params }),
   exceptions: (params) => api.get('/attendance/exceptions', { params }),
+
+  // Punch pipeline
+  reprocess: (data) => api.post('/attendance/reprocess', data),
+  rawPunches: (params) => api.get('/raw-punches', { params }),
+  unmatchedCodes: (params) => api.get('/raw-punches/unmatched-codes', { params }),
+  mapDeviceCode: (employeeId, data) => api.post(`/employees/${employeeId}/map-device-code`, data),
 }

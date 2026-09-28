@@ -62,16 +62,16 @@ const STEPS = [
 ]
 
 const inputCls = (hasError) => cn(
-  'w-full rounded-xl border-0 bg-slate-100/80 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none ring-1 ring-transparent transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/60',
-  hasError && 'ring-2 ring-rose-400/60'
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15',
+  hasError && 'border-rose-400 ring-3 ring-rose-500/15'
 )
 
 export default function AddEmployeeWizard() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const activeBranchId = useAuthStore((s) => s.activeBranchId)
-  const { isSuperAdmin, hasRole } = useRole()
-  const canAssignRole = isSuperAdmin || hasRole('branch_admin')
+  const { can } = useRole()
+  const canAssignRole = can('users.manage')
 
   const [step, setStep] = useState(0)
   const [result, setResult] = useState(null) // { employee, credentials } after success
@@ -119,8 +119,8 @@ export default function AddEmployeeWizard() {
   })
 
   const { data: rolesData } = useQuery({
-    queryKey: ['roles'],
-    queryFn: () => userApi.roles().then((r) => r.data?.data ?? []),
+    queryKey: ['role-options'],
+    queryFn: () => userApi.roles().then((r) => r.data?.options ?? (r.data?.data ?? []).map((n) => ({ name: n, label: n.replace(/_/g, ' ') }))),
     enabled: canAssignRole,
   })
 
@@ -194,7 +194,7 @@ export default function AddEmployeeWizard() {
         </p>
 
         {credentials && (
-          <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 text-left">
+          <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/60 p-5 text-left">
             <div className="mb-3 flex items-center gap-2">
               <KeyRound size={15} className="text-blue-600" />
               <p className="text-[13px] font-bold text-slate-800">Login Credentials</p>
@@ -235,7 +235,7 @@ export default function AddEmployeeWizard() {
             <RefreshCw size={14} /> Add Another
           </button>
           <button onClick={() => navigate(`/employees/${employee.id}`)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700">
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-blue-700">
             View Profile <ArrowRight size={14} />
           </button>
         </div>
@@ -282,7 +282,7 @@ export default function AddEmployeeWizard() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
               <current.icon size={16} />
@@ -463,8 +463,8 @@ export default function AddEmployeeWizard() {
                     <Field label="Role">
                       <select {...register('role')} className={inputCls()}>
                         <option value="">Employee (default)</option>
-                        {(rolesData ?? []).filter((r) => isSuperAdmin || r !== 'super_admin').map((r) => (
-                          <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>
+                        {(rolesData ?? []).map((r) => (
+                          <option key={r.name} value={r.name}>{r.label}</option>
                         ))}
                       </select>
                     </Field>
@@ -494,12 +494,12 @@ export default function AddEmployeeWizard() {
           </button>
           {step < STEPS.length - 1 ? (
             <button type="button" onClick={goNext}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700">
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-blue-700">
               Next <ArrowRight size={14} />
             </button>
           ) : (
             <button type="submit" disabled={mutation.isPending}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 disabled:opacity-60">
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 disabled:opacity-60">
               <PartyPopper size={14} /> {mutation.isPending ? 'Creating…' : 'Create Employee'}
             </button>
           )}

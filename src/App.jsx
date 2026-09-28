@@ -17,9 +17,11 @@ import AttendanceReportsPage from '@/pages/attendance/AttendanceReportsPage'
 import MusterRollPage from '@/pages/attendance/MusterRollPage'
 import AttendanceExceptionsPage from '@/pages/attendance/AttendanceExceptionsPage'
 import LeavePage from '@/pages/leaves/LeavePage'
-import LeaveFormPage from '@/pages/leaves/LeaveFormPage'
 import LeaveSettingsPage from '@/pages/leaves/LeaveSettingsPage'
-import ShiftRosterPage from '@/pages/shifts/ShiftRosterPage'
+import LeaveBalancesPage from '@/pages/leaves/LeaveBalancesPage'
+import ApprovalsPage from '@/pages/approvals/ApprovalsPage'
+import RosterPage from '@/pages/shifts/RosterPage'
+import PunchLogPage from '@/pages/attendance/PunchLogPage'
 import ShiftSwapPage from '@/pages/shifts/ShiftSwapPage'
 import HolidayPage from '@/pages/shifts/HolidayPage'
 import ShiftSettingsPage from '@/pages/shifts/ShiftSettingsPage'
@@ -30,6 +32,7 @@ import PayrollRunDetailPage from '@/pages/payroll/PayrollRunDetailPage'
 import PayslipPage from '@/pages/payroll/PayslipPage'
 import PayrollDashboardPage from '@/pages/payroll/PayrollDashboardPage'
 import PayrollSettingsPage from '@/pages/payroll/PayrollSettingsPage'
+import CompliancePage from '@/pages/payroll/CompliancePage'
 import SettingsPage from '@/pages/settings/SettingsPage'
 import QuickSetupPage from '@/pages/settings/QuickSetupPage'
 import BranchesPage from '@/pages/settings/BranchesPage'
@@ -41,6 +44,17 @@ import TeamAttendancePage from '@/pages/attendance/TeamAttendancePage'
 import AiInsightsPage from '@/pages/AiInsightsPage'
 import TemplateBuilderPage from '@/pages/certificates/TemplateBuilderPage'
 import VerifyPage from '@/pages/certificates/VerifyPage'
+import ChangePasswordPage from '@/pages/auth/ChangePasswordPage'
+import PlatformDashboardPage from '@/pages/platform/PlatformDashboardPage'
+import PlatformCompanyPage from '@/pages/platform/PlatformCompanyPage'
+import OrganisationSettingsPage from '@/pages/settings/OrganisationSettingsPage'
+import AuditLogPage from '@/pages/settings/AuditLogPage'
+import BillingPage from '@/pages/settings/BillingPage'
+import SignupPage from '@/pages/auth/SignupPage'
+import PlatformPlansPage from '@/pages/platform/PlatformPlansPage'
+import RequireFeature from '@/routes/RequireFeature'
+import NotificationSettingsPage from '@/pages/settings/NotificationSettingsPage'
+import AccountNotificationsPage from '@/pages/auth/AccountNotificationsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,6 +70,7 @@ export default function App() {
           {/* Public */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/signup" element={<SignupPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Public certificate verification — no auth required */}
@@ -63,7 +78,18 @@ export default function App() {
 
           {/* Protected */}
           <Route element={<ProtectedRoute />}>
+            {/* First sign-in with a temporary password: outside the app shell */}
+            <Route path="/change-password" element={<ChangePasswordPage forced />} />
+
             <Route element={<AppShell />}>
+              {/* Platform console (super admin) */}
+              <Route path="/platform" element={<PlatformDashboardPage />} />
+              <Route path="/platform/companies/:id" element={<PlatformCompanyPage />} />
+              <Route path="/platform/plans" element={<PlatformPlansPage />} />
+
+              <Route path="/account/security" element={<ChangePasswordPage />} />
+              <Route path="/account/notifications" element={<AccountNotificationsPage />} />
+
               <Route path="/dashboard" element={<DashboardPage />} />
 
               <Route path="/employees" element={<EmployeeListPage />} />
@@ -82,44 +108,49 @@ export default function App() {
               <Route path="/attendance/reports" element={<AttendanceReportsPage />} />
               <Route path="/attendance/muster-roll" element={<MusterRollPage />} />
               <Route path="/attendance/exceptions" element={<AttendanceExceptionsPage />} />
+              <Route path="/attendance/punches" element={<PunchLogPage />} />
 
-              {/* Phase 2: Leaves */}
+              {/* Leave & approvals */}
               <Route path="/leaves" element={<LeavePage />} />
-              <Route path="/leaves/apply" element={<LeaveFormPage />} />
+              <Route path="/leaves/apply" element={<LeavePage />} />
+              <Route path="/leaves/balances" element={<LeaveBalancesPage />} />
               <Route path="/leaves/settings" element={<LeaveSettingsPage />} />
+              <Route path="/approvals" element={<ApprovalsPage />} />
 
               {/* Phase 2: Shifts */}
-              <Route path="/shifts/roster" element={<ShiftRosterPage />} />
-              <Route path="/shifts/swaps" element={<ShiftSwapPage />} />
+              <Route path="/shifts/roster" element={<RequireFeature feature="shifts"><RosterPage /></RequireFeature>} />
+              <Route path="/shifts/swaps" element={<RequireFeature feature="shifts"><ShiftSwapPage /></RequireFeature>} />
               <Route path="/shifts/holidays" element={<HolidayPage />} />
 
               {/* Phase 3: Overtime */}
               <Route path="/overtime" element={<OvertimePage />} />
 
               {/* Phase 3: Payroll */}
-              <Route path="/payroll" element={<PayrollDashboardPage />} />
-              <Route path="/payroll/runs" element={<PayrollRunPage />} />
-              <Route path="/payroll/runs/:id" element={<PayrollRunDetailPage />} />
-              <Route path="/payroll/payslips" element={<PayslipPage />} />
-              <Route path="/payroll/settings" element={<PayrollSettingsPage />} />
+              <Route path="/payroll" element={<RequireFeature feature="payroll"><PayrollDashboardPage /></RequireFeature>} />
+              <Route path="/payroll/runs" element={<RequireFeature feature="payroll"><PayrollRunPage /></RequireFeature>} />
+              <Route path="/payroll/runs/:id" element={<RequireFeature feature="payroll"><PayrollRunDetailPage /></RequireFeature>} />
+              <Route path="/payroll/payslips" element={<RequireFeature feature="payroll"><PayslipPage /></RequireFeature>} />
+              <Route path="/payroll/settings" element={<RequireFeature feature="payroll"><PayrollSettingsPage /></RequireFeature>} />
+              <Route path="/payroll/compliance" element={<RequireFeature feature="statutory"><CompliancePage /></RequireFeature>} />
 
               {/* Phase 4: Certificates */}
-              <Route path="/certificates" element={<CertificatesPage />} />
-              <Route path="/certificates/templates/new" element={<TemplateBuilderPage />} />
-              <Route path="/certificates/templates/:id/edit" element={<TemplateBuilderPage />} />
+              <Route path="/certificates" element={<RequireFeature feature="certificates"><CertificatesPage /></RequireFeature>} />
+              <Route path="/certificates/templates/new" element={<RequireFeature feature="certificates"><TemplateBuilderPage /></RequireFeature>} />
+              <Route path="/certificates/templates/:id/edit" element={<RequireFeature feature="certificates"><TemplateBuilderPage /></RequireFeature>} />
 
               {/* Phase 5+ stubs */}
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/settings/users" element={<UsersPage />} />
               <Route path="/settings/roles" element={<RolesPage />} />
-              <Route path="/insights" element={<AiInsightsPage />} />
+              <Route path="/insights" element={<RequireFeature feature="insights"><AiInsightsPage /></RequireFeature>} />
               <Route path="/settings/quick-setup" element={<QuickSetupPage />} />
               <Route path="/settings/shifts" element={<ShiftSettingsPage />} />
               <Route path="/settings/branches" element={<BranchesPage />} />
-              <Route path="/settings/biometric" element={<BiometricSettingsPage />} />
-              <Route path="/recruitment" element={<StubPage title="Recruitment" phase="Phase 5" />} />
-              <Route path="/performance" element={<StubPage title="Performance" phase="Phase 5" />} />
-              <Route path="/reports" element={<StubPage title="Reports" phase="Phase 6" />} />
+              <Route path="/settings/biometric" element={<RequireFeature feature="biometric"><BiometricSettingsPage /></RequireFeature>} />
+              <Route path="/settings/organisation" element={<OrganisationSettingsPage />} />
+              <Route path="/settings/audit" element={<RequireFeature feature="audit_log"><AuditLogPage /></RequireFeature>} />
+              <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
+              <Route path="/settings/billing" element={<BillingPage />} />
 
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
             </Route>
@@ -129,16 +160,5 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
-  )
-}
-
-function StubPage({ title, phase }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="rounded-2xl border border-dashed border-slate-300 px-12 py-10">
-        <h1 className="text-xl font-bold text-slate-700">{title}</h1>
-        <p className="mt-2 text-sm text-slate-400">Coming in {phase}</p>
-      </div>
-    </div>
   )
 }

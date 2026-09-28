@@ -14,25 +14,40 @@ const api = axios.create({
   },
 })
 
-api.interceptors.request.use((config) => {
-  // Read token fresh from storage each request so Zustand hydration isn't needed
+function readSession() {
   try {
     const stored = localStorage.getItem('hrms-auth')
-    if (stored) {
-      const { state } = JSON.parse(stored)
-      if (state?.token) {
-        config.headers.Authorization = `Bearer ${state.token}`
-      }
-    }
-  } catch (_) {}
+    return stored ? JSON.parse(stored).state ?? {} : {}
+  } catch {
+    return {}
+  }
+}
+
+api.interceptors.request.use((config) => {
+  // Read the session fresh from storage each request so Zustand hydration isn't needed
+  const state = readSession()
+  if (state.token) {
+    config.headers.Authorization = `Bearer ${state.token}`
+  }
+  // Platform admin acting inside an organisation ("support mode").
+  if (state.supportCompanyId && !config.url?.startsWith('/platform')) {
+    config.headers['X-Company-Id'] = String(state.supportCompanyId)
+  }
   return config
 })
+
+// Codes the API returns when the session itself is no longer usable.
+const SESSION_ENDING_CODES = ['ACCOUNT_DISABLED', 'TENANT_SUSPENDED', 'NO_TENANT']
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status
+    const code = error.response?.data?.code
+
+    if (status === 401 || (status === 403 && SESSION_ENDING_CODES.includes(code))) {
       localStorage.removeItem('hrms-auth')
+      if (code) sessionStorage.setItem('hrms-logout-reason', error.response.data.message ?? '')
       if (!window.location.pathname.startsWith('/login')) {
         window.location.href = '/login'
       }
@@ -40,5 +55,15 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+/** First human-readable message in an API error (validation or otherwise). */
+export function apiError(err, fallback = 'Something went wrong. Please try again.') {
+  const data = err?.response?.data
+  if (data?.errors) {
+    const first = Object.values(data.errors)[0]
+    if (Array.isArray(first) && first[0]) return first[0]
+  }
+  return data?.message || fallback
+}
 
 export default api

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, User, MapPin, Briefcase, Landmark, PhoneCall, Pencil, Check } from 'lucide-react'
+import { ArrowLeft, User, MapPin, Briefcase, Landmark, PhoneCall, Pencil, Check, ShieldCheck } from 'lucide-react'
 import { employeeApi } from '@/lib/api/employees'
 import { departmentApi, designationApi, branchApi } from '@/lib/api/departments'
 import { shiftApi } from '@/lib/api/shifts'
@@ -61,7 +61,19 @@ const schema = z.object({
   designation_id: optional(z.coerce.number()),
   reporting_manager_id: optional(z.coerce.number()),
   shift_id: optional(z.coerce.number()),
+  // Statutory & payroll
+  uan: optional(z.string().regex(/^\d{12}$/, 'UAN is 12 digits')),
+  pf_number: optional(z.string()),
+  esi_number: optional(z.string()),
+  pf_opted_out: z.boolean().optional(),
+  pt_exempt: z.boolean().optional(),
+  tax_regime: z.enum(['new', 'old']).optional(),
+  declared_deductions: optional(z.coerce.number().min(0)),
+  weekly_off_mode: z.enum(['branch', 'custom']).optional(),
+  weekly_off_days: z.any().optional(),
 })
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const SECTION_COLORS = {
   blue: 'bg-blue-50 text-blue-600',
@@ -69,11 +81,12 @@ const SECTION_COLORS = {
   indigo: 'bg-indigo-50 text-indigo-600',
   purple: 'bg-purple-50 text-purple-600',
   rose: 'bg-rose-50 text-rose-600',
+  amber: 'bg-amber-50 text-amber-600',
 }
 
 function Section({ id, icon: Icon, title, subtitle, color = 'blue', children }) {
   return (
-    <div id={id} className="scroll-mt-24 rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+    <div id={id} className="scroll-mt-24 rounded-xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
       <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
         <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl', SECTION_COLORS[color])}>
           <Icon size={16} />
@@ -197,6 +210,15 @@ function EditEmployeeForm({ id }) {
         department_id: existing.department_id ?? '',
         designation_id: existing.designation_id ?? '',
         reporting_manager_id: existing.reporting_manager_id ?? '',
+        uan: str(existing.uan),
+        pf_number: str(existing.pf_number),
+        esi_number: str(existing.esi_number),
+        pf_opted_out: !!existing.pf_opted_out,
+        pt_exempt: !!existing.pt_exempt,
+        tax_regime: existing.tax_regime ?? 'new',
+        declared_deductions: existing.declared_deductions ?? 0,
+        weekly_off_mode: Array.isArray(existing.weekly_off_days) ? 'custom' : 'branch',
+        weekly_off_days: (existing.weekly_off_days ?? []).map(String),
       })
     }
   }, [existing, currentShift, reset])
@@ -214,8 +236,12 @@ function EditEmployeeForm({ id }) {
   async function onSubmit(data) {
     const optionalIds = ['department_id', 'designation_id', 'reporting_manager_id']
     const required = ['first_name', 'last_name', 'email', 'employee_code', 'date_of_joining', 'employment_type', 'branch_id', 'status']
-    const { shift_id, ...rest } = data // shift isn't an employee field — handled separately below
-    const payload = {}
+    // shift isn't an employee field (handled separately below); weekly offs are a mode + days pair.
+    const { shift_id, weekly_off_mode, weekly_off_days, ...rest } = data
+    const payload = {
+      weekly_off_days: weekly_off_mode === 'custom' ? [].concat(weekly_off_days || []).map(Number) : null,
+    }
+    if (rest.declared_deductions === '' || rest.declared_deductions === undefined) rest.declared_deductions = 0
     for (const [key, value] of Object.entries(rest)) {
       if (Number.isNaN(value)) continue
       const isEmpty = value === '' || value === undefined || (optionalIds.includes(key) && !value)
@@ -239,8 +265,8 @@ function EditEmployeeForm({ id }) {
   }
 
   const fieldCls = (name) => cn(
-    'w-full rounded-xl border-0 bg-slate-100/80 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none ring-1 ring-transparent transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/60',
-    errors[name] && 'ring-2 ring-rose-400/60'
+    'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15',
+    errors[name] && 'border-rose-400 ring-3 ring-rose-500/15'
   )
 
   const input = (name, opts = {}) => (
@@ -269,6 +295,7 @@ function EditEmployeeForm({ id }) {
     { id: 'sec-address', icon: MapPin, label: 'Address', color: 'emerald' },
     { id: 'sec-employment', icon: Briefcase, label: 'Employment', color: 'indigo' },
     { id: 'sec-bank', icon: Landmark, label: 'Bank & Payment', color: 'purple' },
+    { id: 'sec-statutory', icon: ShieldCheck, label: 'Statutory & Payroll', color: 'amber' },
     { id: 'sec-emergency', icon: PhoneCall, label: 'Emergency Contact', color: 'rose' },
   ]
 
@@ -283,7 +310,7 @@ function EditEmployeeForm({ id }) {
           <button onClick={() => navigate(-1)} className="rounded-xl p-1.5 text-slate-500 transition-colors hover:bg-slate-100">
             <ArrowLeft size={18} />
           </button>
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/20">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xs">
             <Pencil size={18} />
           </div>
           <div>
@@ -311,11 +338,11 @@ function EditEmployeeForm({ id }) {
       <div className="grid gap-6 lg:grid-cols-[240px_1fr] items-start">
         {/* Sticky profile + section nav */}
         <div className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 text-center shadow-sm">
+          <div className="rounded-xl border border-slate-200/80 bg-white p-5 text-center shadow-sm">
             {existing?.avatar_url ? (
-              <img src={existing.avatar_url} alt="" className="mx-auto h-16 w-16 rounded-2xl object-cover shadow-sm" />
+              <img src={existing.avatar_url} alt="" className="mx-auto h-16 w-16 rounded-xl object-cover shadow-sm" />
             ) : (
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-bold text-white shadow-sm">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-bold text-white shadow-sm">
                 {initials}
               </div>
             )}
@@ -323,7 +350,7 @@ function EditEmployeeForm({ id }) {
             <p className="font-mono text-[11px] text-slate-400">{existing?.employee_code}</p>
           </div>
 
-          <nav className="hidden rounded-2xl border border-slate-200/80 bg-white p-2 shadow-sm lg:block">
+          <nav className="hidden rounded-xl border border-slate-200/80 bg-white p-2 shadow-sm lg:block">
             {NAV_SECTIONS.map((s) => (
               <button key={s.id} type="button" onClick={() => jumpTo(s.id)}
                 className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900">
@@ -354,8 +381,8 @@ function EditEmployeeForm({ id }) {
             {select('blood_group', [['', 'Select'], ['A+', 'A+'], ['A-', 'A-'], ['B+', 'B+'], ['B-', 'B-'], ['AB+', 'AB+'], ['AB-', 'AB-'], ['O+', 'O+'], ['O-', 'O-']])}
           </Field>
           <Field label="Nationality" name="nationality">{input('nationality')}</Field>
-          <Field label="National ID (Aadhaar / SSN)" name="national_id">{input('national_id')}</Field>
-          <Field label="Tax ID (PAN)" name="tax_id">{input('tax_id')}</Field>
+          <Field label="Aadhaar / National ID" name="national_id">{input('national_id')}</Field>
+          <Field label="PAN / Tax ID" name="tax_id">{input('tax_id', { placeholder: 'ABCDE1234F' })}</Field>
         </Section>
 
         <Section id="sec-address" color="emerald" icon={MapPin} title="Address" subtitle="Current residential address">
@@ -406,6 +433,18 @@ function EditEmployeeForm({ id }) {
           <Field label="Status" name="status">
             {select('status', [['active', 'Active'], ['inactive', 'Inactive'], ['terminated', 'Terminated']])}
           </Field>
+          <Field label="Weekly off" name="weekly_off_mode" className="sm:col-span-2">
+            {select('weekly_off_mode', [['branch', 'Same as branch'], ['custom', 'Personal weekly off (staggered)']])}
+            {watch('weekly_off_mode') === 'custom' && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {WEEKDAYS.map((d, i) => (
+                  <label key={d} className="flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-600 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 has-[:checked]:text-blue-700">
+                    <input type="checkbox" value={String(i)} {...register('weekly_off_days')} className="h-3 w-3" /> {d}
+                  </label>
+                ))}
+              </div>
+            )}
+          </Field>
           <Field label="Notes" name="notes" className="sm:col-span-2 lg:col-span-3">
             <textarea rows={2} {...register('notes')} className={fieldCls('notes')}
               placeholder="Internal HR notes (not visible to the employee)" />
@@ -422,15 +461,33 @@ function EditEmployeeForm({ id }) {
           <Field label="IFSC / Routing Code" name="bank_ifsc_code">{input('bank_ifsc_code')}</Field>
         </Section>
 
+        <Section id="sec-statutory" color="amber" icon={ShieldCheck} title="Statutory & Payroll" subtitle="PF, ESI, professional tax and income tax">
+          <Field label="UAN (PF)" name="uan">{input('uan', { placeholder: '12-digit UAN' })}</Field>
+          <Field label="PF member ID" name="pf_number">{input('pf_number')}</Field>
+          <Field label="ESI IP number" name="esi_number">{input('esi_number')}</Field>
+          <Field label="Income tax regime" name="tax_regime">
+            {select('tax_regime', [['new', 'New regime (default)'], ['old', 'Old regime']])}
+          </Field>
+          {watch('tax_regime') === 'old' && (
+            <Field label="Declared deductions / year (₹)" name="declared_deductions">
+              {input('declared_deductions', { type: 'number', placeholder: '80C, 80D, HRA exemption…' })}
+            </Field>
+          )}
+          <div className="flex flex-col justify-end gap-2 pb-1 sm:col-span-2 lg:col-span-1">
+            <label className="flex items-center gap-2 text-[13px] text-slate-700"><input type="checkbox" {...register('pf_opted_out')} className="h-4 w-4 rounded" /> Not a PF member (opted out)</label>
+            <label className="flex items-center gap-2 text-[13px] text-slate-700"><input type="checkbox" {...register('pt_exempt')} className="h-4 w-4 rounded" /> Exempt from professional tax</label>
+          </div>
+        </Section>
+
         <Section id="sec-emergency" color="rose" icon={PhoneCall} title="Emergency Contact" subtitle="Who to reach in an emergency">
           <Field label="Contact Name" name="emergency_contact_name">{input('emergency_contact_name')}</Field>
           <Field label="Contact Phone" name="emergency_contact_phone">{input('emergency_contact_phone', { type: 'tel' })}</Field>
           <Field label="Relationship" name="emergency_contact_relation">{input('emergency_contact_relation', { placeholder: 'e.g. Spouse, Parent' })}</Field>
         </Section>
 
-        <div className="sticky bottom-4 z-10 flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/95 px-5 py-3.5 shadow-lg shadow-slate-900/5 backdrop-blur">
+        <div className="sticky bottom-4 z-10 flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white/95 px-5 py-3.5 shadow-md shadow-slate-900/5 backdrop-blur">
           <button type="submit" disabled={isSubmitting}
-            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:shadow-blue-600/40 disabled:opacity-60">
+            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-5 py-2 hover:bg-blue-700 text-sm font-semibold text-white shadow-xs transition-all hover:shadow-blue-600/40 disabled:opacity-60">
             <Check size={15} />
             {isSubmitting ? 'Saving…' : 'Save Changes'}
           </button>

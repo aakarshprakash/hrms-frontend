@@ -1,14 +1,18 @@
 import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useNavigate, Link } from 'react-router-dom'
-import { Eye, EyeOff, AlertCircle, Users, ShieldCheck, TrendingUp, Network } from 'lucide-react'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { Eye, EyeOff, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { authApi } from '@/lib/api/auth'
-import logoWhite from '@/assets/brand/logo-white.png'
-import logoFull from '@/assets/brand/logo-full.png'
+import { billingApi } from '@/lib/api/billing'
+import { apiError } from '@/lib/api/axios'
+import { homePathFor } from '@/lib/session'
+import AuthLayout from '@/components/layout/AuthLayout'
+import { Button, Field, Input, ErrorBanner } from '@/components/ui/kit'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -17,155 +21,71 @@ const schema = z.object({
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
   const setAuth = useAuthStore((s) => s.setAuth)
   const [showPassword, setShowPassword] = useState(false)
-  const [serverError, setServerError] = useState('')
-
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    resolver: zodResolver(schema),
+  const qc = useQueryClient()
+  const { data: publicConfig } = useQuery({
+    queryKey: ['public-config'],
+    queryFn: () => billingApi.publicConfig().then((r) => r.data.data),
+    staleTime: 10 * 60 * 1000,
+    retry: false,
   })
+  // Why the previous session ended (deactivated account, suspended organisation...).
+  const [serverError, setServerError] = useState(() => {
+    const reason = sessionStorage.getItem('hrms-logout-reason')
+    sessionStorage.removeItem('hrms-logout-reason')
+    return reason ?? ''
+  })
+
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({ resolver: zodResolver(schema) })
 
   async function onSubmit(data) {
     setServerError('')
     try {
       const res = await authApi.login(data)
-      const { user, token, branches } = res.data.data ?? res.data
-      setAuth(user, token, branches ?? [])
-      navigate('/dashboard')
+      const { user, token, branches, company, features, subscription } = res.data.data ?? res.data
+      qc.clear()
+      setAuth(user, token, branches ?? [], { company, features, subscription })
+      navigate(homePathFor(user), { replace: true })
     } catch (err) {
-      setServerError(err.response?.data?.message ?? 'Login failed. Please try again.')
+      setServerError(err.response?.status === 429
+        ? 'Too many sign-in attempts. Please wait a minute and try again.'
+        : apiError(err, 'Login failed. Please try again.'))
     }
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left decorative panel — hidden on mobile */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-brand-navy via-blue-950 to-brand-navy flex-col items-center justify-center p-12 relative overflow-hidden">
-        {/* Decorative circles */}
-        <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-blue-500/10" />
-        <div className="absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-blue-400/10" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full border border-blue-500/10" />
-
-        <div className="relative z-10 text-center max-w-sm">
-          <img src={logoWhite} alt="PeopleNex HRMS" className="mx-auto mb-6 h-12 w-auto" />
-          <p className="text-blue-300 text-xs font-semibold tracking-wide uppercase mb-4">Powered by Sysnac</p>
-          <p className="text-blue-200 text-base leading-relaxed">
-            A modern HRMS platform that simplifies workforce management and helps organizations focus on what matters most — their people.
-          </p>
-
-          <div className="mt-10 grid grid-cols-2 gap-4 text-left">
-            {[
-              { icon: Users, label: 'People First', desc: 'Built around your workforce' },
-              { icon: ShieldCheck, label: 'Trust & Reliability', desc: 'Secure and dependable' },
-              { icon: TrendingUp, label: 'Growth & Efficiency', desc: 'Streamlined HR operations' },
-              { icon: Network, label: 'Connected Workforce', desc: 'One platform, every team' },
-            ].map((f) => (
-              <div key={f.label} className="rounded-xl bg-white/5 border border-white/10 p-3.5">
-                <f.icon size={18} className="text-brand-teal mb-2" />
-                <p className="text-sm font-semibold text-white">{f.label}</p>
-                <p className="text-xs text-blue-300 mt-0.5">{f.desc}</p>
-              </div>
-            ))}
-          </div>
+    <AuthLayout title="Welcome back" subtitle="Sign in to your PeopleNex workspace."
+      footer={publicConfig?.signup && <>New to PeopleNex? <Link to="/signup" className="font-semibold text-blue-600 hover:underline">Start a free trial</Link></>}>
+      {params.get('reset') && !serverError && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[13px] text-emerald-700">
+          <CheckCircle2 size={16} /> Password updated — sign in with your new password.
         </div>
-      </div>
+      )}
+      <ErrorBanner message={serverError || undefined} className="mb-4" />
 
-      {/* Right login form */}
-      <div className="flex flex-1 items-center justify-center bg-slate-50 p-6">
-        <div className="w-full max-w-sm">
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-8">
-            <img src={logoFull} alt="PeopleNex HRMS" className="mx-auto mb-3 h-14 w-auto" />
-            <p className="text-xs font-semibold tracking-wide uppercase text-blue-600">Powered by Sysnac</p>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <Field label="Work email" error={errors.email?.message}>
+          <Input id="email" type="email" autoComplete="email" placeholder="you@company.com" className={cn('h-10', errors.email && 'border-rose-400')} {...register('email')} />
+        </Field>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label htmlFor="password" className="text-[13px] font-medium text-slate-700">Password</label>
+            <Link to="/forgot-password" className="text-xs font-medium text-blue-600 hover:underline">Forgot password?</Link>
           </div>
-
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
-            <p className="mt-1 text-sm text-slate-500">Sign in to your account to continue</p>
+          <div className="relative">
+            <Input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="••••••••"
+              className={cn('h-10 pr-10', errors.password && 'border-rose-400')} {...register('password')} />
+            <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600">
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            {serverError && (
-              <div className="mb-4 flex items-start gap-2.5 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
-                <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                {serverError}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5" htmlFor="email">
-                  Email address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  {...register('email')}
-                  placeholder="you@company.com"
-                  className={cn(
-                    'w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all',
-                    'focus:bg-white focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15',
-                    errors.email ? 'border-red-400' : 'border-slate-200'
-                  )}
-                />
-                {errors.email && <p className="mt-1.5 text-xs text-red-500">{errors.email.message}</p>}
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-sm font-medium text-slate-700" htmlFor="password">
-                    Password
-                  </label>
-                  <Link to="/forgot-password" className="text-xs text-blue-600 hover:text-blue-700 hover:underline">
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    {...register('password')}
-                    placeholder="••••••••"
-                    className={cn(
-                      'w-full rounded-xl border bg-slate-50 px-4 py-2.5 pr-11 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all',
-                      'focus:bg-white focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15',
-                      errors.password ? 'border-red-400' : 'border-slate-200'
-                    )}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400 hover:text-slate-600 transition-colors"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {errors.password && <p className="mt-1.5 text-xs text-red-500">{errors.password.message}</p>}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-500/20 transition-all hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/25 focus:outline-none focus:ring-3 focus:ring-blue-500/30 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                    Signing in…
-                  </span>
-                ) : 'Sign in'}
-              </button>
-            </form>
-          </div>
-
-          <p className="mt-6 text-center text-xs text-slate-400">
-            © {new Date().getFullYear()} PeopleNex HRMS · Powered by Sysnac
-          </p>
+          {errors.password && <p className="mt-1 text-xs text-rose-600">{errors.password.message}</p>}
         </div>
-      </div>
-    </div>
+        <Button type="submit" size="lg" className="w-full" loading={isSubmitting}>{isSubmitting ? 'Signing in…' : 'Sign in'}</Button>
+      </form>
+    </AuthLayout>
   )
 }

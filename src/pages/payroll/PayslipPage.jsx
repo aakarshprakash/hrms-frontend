@@ -1,148 +1,126 @@
-import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { FileText, Download, Eye, IndianRupee } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { FileText, Download, Eye, Receipt } from 'lucide-react'
 import { payrollApi, openPayslipPdf } from '@/lib/api/payroll'
-import { useAuthStore } from '@/store/authStore'
 import { useRole } from '@/hooks/useRole'
+import { money, monthLabel, days, MONTHS_SHORT } from '@/lib/format'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn } from '@/lib/utils'
+import PayslipBreakdown from '@/components/payroll/PayslipBreakdown'
+import { PageHeader, Card, Button, Modal, Select, Tabs, Table, EmptyState, StatusPill, Pagination } from '@/components/ui/kit'
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-
-function fmtMoney(v) {
-  return Number(v ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })
-}
-
-function PayslipCard({ payslip }) {
-  const run = payslip.payroll_run
-  const [busy, setBusy] = useState(false)
-
-  async function handleOpen(download) {
-    setBusy(true)
-    try {
-      await openPayslipPdf(payslip.id, { download })
-    } catch {
-      alert('Failed to load payslip PDF.')
-    } finally {
-      setBusy(false)
-    }
-  }
+export default function PayslipPage() {
+  const { can, user } = useRole()
+  const isPayroll = can('payroll.view', 'payroll.manage')
+  const [tab, setTab] = useState(isPayroll ? 'all' : 'mine')
+  const [selected, setSelected] = useState(null)
 
   return (
-    <div className="rounded-2xl border bg-white shadow-sm p-5 flex items-center justify-between gap-4 flex-wrap">
-      <div className="flex items-center gap-4">
-        <div className="rounded-xl bg-blue-50 p-3">
-          <FileText size={20} className="text-blue-600" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-slate-900">
-            {run ? `${MONTHS[run.month - 1]} ${run.year}` : `Payslip #${payslip.id}`}
-          </p>
-          {payslip.employee && (
-            <p className="text-xs text-slate-500">{payslip.employee.first_name} {payslip.employee.last_name}</p>
-          )}
-          <p className="text-xs text-slate-400 mt-0.5">
-            Gross: <span className="text-slate-600 font-medium">₹{fmtMoney(payslip.gross_pay)}</span>
-            {' · '}
-            Net: <span className="text-emerald-600 font-semibold">₹{fmtMoney(payslip.net_pay)}</span>
-          </p>
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <button onClick={() => handleOpen(false)} disabled={busy}
-          className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-60">
-          <Eye size={13} /> View
-        </button>
-        <button onClick={() => handleOpen(true)} disabled={busy}
-          className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 shadow-sm shadow-blue-500/20 transition-colors disabled:opacity-60">
-          <Download size={13} /> Download
-        </button>
-      </div>
+    <div>
+      <PageHeader icon={Receipt} title={isPayroll ? 'Payslips' : 'My payslips'}
+        subtitle={isPayroll ? 'Every payslip in your scope, and your own.' : 'Your monthly payslips, available once payroll is finalized.'} />
+
+      {isPayroll && user?.employee_id && (
+        <Tabs className="mb-4" value={tab} onChange={setTab} tabs={[{ key: 'all', label: 'All payslips' }, { key: 'mine', label: 'My payslips' }]} />
+      )}
+
+      {tab === 'mine' ? <MyPayslips onOpen={setSelected} /> : <AllPayslips onOpen={setSelected} />}
+
+      {selected && (
+        <Modal size="lg" title={selected.title} subtitle={selected.subtitle} onClose={() => setSelected(null)}
+          footer={<Button variant="secondary" icon={Download} onClick={() => openPayslipPdf(selected.row.id, { download: true })}>Download PDF</Button>}>
+          <PayslipBreakdown row={selected.row} />
+        </Modal>
+      )}
     </div>
   )
 }
 
-export default function PayslipPage() {
-  const user = useAuthStore((s) => s.user)
-  const activeBranch = useAuthStore((s) => s.activeBranch)
-  const { hasRole } = useRole()
-  const isHR = hasRole('hr') || hasRole('branch_admin') || hasRole('super_admin')
-  const [employeeFilter, setEmployeeFilter] = useState('')
-  const [runFilter, setRunFilter] = useState('')
-
+function MyPayslips({ onOpen }) {
   const { data: payslips = [], isLoading } = useQuery({
-    queryKey: ['payslips', user?.employee_id, activeBranch?.id, employeeFilter, runFilter],
-    queryFn: () => payrollApi.listPayslips({
-      ...(!isHR ? { employee_id: user?.employee_id } : {}),
-      ...(employeeFilter ? { employee_id: employeeFilter } : {}),
-      ...(runFilter ? { payroll_run_id: runFilter } : {}),
-    }).then((r) => r.data?.data ?? []),
+    queryKey: ['payslips', 'mine'],
+    queryFn: () => payrollApi.listPayslips({ mine: 1, per_page: 36 }).then((r) => r.data?.data ?? []),
   })
 
-  const { data: runs = [] } = useQuery({
-    queryKey: ['payroll-runs', activeBranch?.id],
-    queryFn: () => payrollApi.listRuns({ branch_id: activeBranch?.id, status: 'completed' }).then((r) => r.data?.data ?? []),
-    enabled: isHR,
-  })
-
-  // Summary stats
-  const totalGross = payslips.reduce((s, p) => s + Number(p.gross_pay), 0)
-  const totalNet = payslips.reduce((s, p) => s + Number(p.net_pay), 0)
+  if (isLoading) return <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div>
+  if (payslips.length === 0) {
+    return <Card><EmptyState icon={FileText} title="No payslips yet" description="Your payslip appears here as soon as the month's payroll is finalized." /></Card>
+  }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-900">
-        {isHR ? 'Payslips' : 'My Payslips'}
-      </h1>
-
-      {/* Summary row for HR */}
-      {isHR && payslips.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="rounded-2xl border bg-white p-4 shadow-sm text-center">
-            <p className="text-xs text-slate-500 mb-1">Payslips</p>
-            <p className="text-2xl font-bold text-slate-900">{payslips.length}</p>
-          </div>
-          <div className="rounded-2xl border bg-white p-4 shadow-sm text-center">
-            <p className="text-xs text-slate-500 mb-1">Total Gross</p>
-            <p className="text-2xl font-bold text-slate-900 flex items-center justify-center gap-0.5">
-              <IndianRupee size={18} />{fmtMoney(totalGross)}
-            </p>
-          </div>
-          <div className="rounded-2xl border bg-white p-4 shadow-sm text-center">
-            <p className="text-xs text-slate-500 mb-1">Total Net Pay</p>
-            <p className="text-2xl font-bold text-emerald-600 flex items-center justify-center gap-0.5">
-              <IndianRupee size={18} />{fmtMoney(totalNet)}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Filters for HR */}
-      {isHR && (
-        <div className="flex gap-3 flex-wrap">
-          <select value={runFilter} onChange={(e) => setRunFilter(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none focus:border-blue-500">
-            <option value="">All Runs</option>
-            {runs.map((r) => (
-              <option key={r.id} value={r.id}>{MONTHS[r.month - 1]} {r.year}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Payslip list */}
-      {isLoading ? (
-        <div className="flex justify-center py-12"><Spinner className="h-8 w-8" /></div>
-      ) : payslips.length === 0 ? (
-        <div className="rounded-2xl border border-dashed py-16 text-center">
-          <FileText size={32} className="mx-auto text-slate-300 mb-3" />
-          <p className="text-sm text-slate-400">No payslips found.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {payslips.map((p) => <PayslipCard key={p.id} payslip={p} />)}
-        </div>
-      )}
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {payslips.map((p) => {
+        const run = p.payroll_run
+        return (
+          <Card key={p.id} className="flex flex-col">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 flex-col items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                  <span className="text-[10px] font-bold uppercase leading-none">{MONTHS_SHORT[run.month - 1]}</span>
+                  <span className="text-xs font-bold">{run.year}</span>
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-900">{monthLabel(run.month, run.year)}</p>
+                  <p className="text-xs text-slate-400">{days(p.payable_days)} payable day(s){Number(p.lop_days) > 0 ? ` · ${days(p.lop_days)} LOP` : ''}</p>
+                </div>
+              </div>
+              <StatusPill status={run.status === 'paid' ? 'paid' : 'published'} label={run.status === 'paid' ? 'Paid' : 'Published'} />
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl bg-slate-50 py-2"><p className="text-[10px] uppercase text-slate-400">Gross</p><p className="text-sm font-semibold">{money(p.gross_pay)}</p></div>
+              <div className="rounded-xl bg-slate-50 py-2"><p className="text-[10px] uppercase text-slate-400">Deductions</p><p className="text-sm font-semibold text-rose-600">{money(p.total_deductions)}</p></div>
+              <div className="rounded-xl bg-blue-50 py-2"><p className="text-[10px] uppercase text-blue-500">Net pay</p><p className="text-sm font-bold text-blue-700">{money(p.net_pay)}</p></div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Button variant="secondary" size="sm" icon={Eye} className="flex-1"
+                onClick={() => onOpen({ row: p, title: monthLabel(run.month, run.year), subtitle: 'Payslip breakdown' })}>View</Button>
+              <Button size="sm" icon={Download} className="flex-1" onClick={() => openPayslipPdf(p.id, { download: true })}>PDF</Button>
+            </div>
+          </Card>
+        )
+      })}
     </div>
+  )
+}
+
+function AllPayslips({ onOpen }) {
+  const [runId, setRunId] = useState('')
+  const [page, setPage] = useState(1)
+
+  const { data: runs = [] } = useQuery({
+    queryKey: ['payroll-runs', 'with-payslips'],
+    queryFn: () => payrollApi.listRuns({ status: 'processed,finalized,paid' }).then((r) => r.data?.data ?? []),
+  })
+  const { data, isLoading } = useQuery({
+    queryKey: ['payslips', 'all', runId, page],
+    queryFn: () => payrollApi.listPayslips({ payroll_run_id: runId || undefined, page, per_page: 50 }).then((r) => r.data),
+    placeholderData: (p) => p,
+  })
+
+  return (
+    <>
+      <div className="mb-4">
+        <Select className="w-auto" value={runId} onChange={(e) => { setRunId(e.target.value); setPage(1) }}>
+          <option value="">All runs</option>
+          {runs.map((r) => <option key={r.id} value={r.id}>{monthLabel(r.month, r.year)} — {r.branch?.name} ({r.status})</option>)}
+        </Select>
+      </div>
+      <Card padded={false}>
+        {isLoading ? <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div> : (
+          <Table rows={data?.data ?? []} onRowClick={(p) => onOpen({ row: p, title: `${p.employee?.first_name} ${p.employee?.last_name}`, subtitle: `${p.employee?.employee_code} · ${monthLabel(p.payroll_run.month, p.payroll_run.year)}` })}
+            empty={<EmptyState icon={FileText} title="No payslips" />}
+            columns={[
+              { key: 'employee', label: 'Employee', render: (p) => <div><p className="font-medium text-slate-800">{p.employee?.first_name} {p.employee?.last_name}</p><p className="text-xs text-slate-400">{p.employee?.employee_code}</p></div> },
+              { key: 'period', label: 'Period', render: (p) => monthLabel(p.payroll_run.month, p.payroll_run.year) },
+              { key: 'state', label: 'Status', render: (p) => <StatusPill status={p.published_at ? 'published' : 'draft'} label={p.published_at ? 'Published' : 'In review'} /> },
+              { key: 'gross_pay', label: 'Gross', align: 'right', render: (p) => money(p.gross_pay) },
+              { key: 'net_pay', label: 'Net', align: 'right', render: (p) => <b>{money(p.net_pay)}</b> },
+              { key: 'pdf', label: '', align: 'right', render: (p) => (
+                <Button size="sm" variant="ghost" icon={Download} onClick={(e) => { e.stopPropagation(); openPayslipPdf(p.id, { download: true }) }}>PDF</Button>
+              ) },
+            ]} />
+        )}
+      </Card>
+      <Pagination meta={data?.meta} onPage={setPage} />
+    </>
   )
 }

@@ -1,94 +1,72 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, CalendarDays, Plus, Edit2, Trash2, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays, Plus, Pencil, Trash2, Repeat, PartyPopper } from 'lucide-react'
 import { holidayApi } from '@/lib/api/shifts'
 import { branchApi } from '@/lib/api/departments'
 import { useAuthStore } from '@/store/authStore'
 import { useRole } from '@/hooks/useRole'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn } from '@/lib/utils'
+import { PageHeader, Card, CardHeader, Button, IconButton, Modal, Field, Input, Select, Toggle, EmptyState, ErrorBanner } from '@/components/ui/kit'
 
-const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
-const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+// Holiday dates come back as ISO timestamps; the calendar day is the first ten characters.
+const dayKey = (h) => String(h.date ?? '').slice(0, 10)
+const asDate = (key) => new Date(`${key}T00:00:00`)
 
 function buildCalendar(year, month, holidays) {
   const byDate = {}
-  for (const h of holidays) byDate[h.date?.slice(0, 10)] = h
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const firstDay = new Date(year, month, 1).getDay()
-  const cells = []
-  for (let i = 0; i < firstDay; i++) cells.push(null)
-  for (let d = 1; d <= daysInMonth; d++) {
+  for (const h of holidays) byDate[dayKey(h)] = h
+  const cells = Array.from({ length: new Date(year, month, 1).getDay() }, () => null)
+  for (let d = 1; d <= new Date(year, month + 1, 0).getDate(); d++) {
     const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    cells.push({ day: d, date: key, holiday: byDate[key] ?? null })
+    cells.push({ day: d, date: key, dow: new Date(year, month, d).getDay(), holiday: byDate[key] ?? null })
   }
   return cells
 }
 
-function HolidayForm({ initial, branches, activeBranchId, onSave, onCancel, saving }) {
+function HolidayModal({ initial, branches, activeBranchId, onSave, onClose, saving, error }) {
   const [name, setName] = useState(initial?.name ?? '')
-  const [date, setDate] = useState(initial?.date?.slice(0, 10) ?? '')
+  const [date, setDate] = useState(initial ? dayKey(initial) : '')
   const [branchId, setBranchId] = useState(initial?.branch_id ?? activeBranchId ?? '')
   const [recurring, setRecurring] = useState(initial?.recurring ?? false)
 
-  function handleSubmit(e) {
+  function submit(e) {
     e.preventDefault()
     if (!name.trim() || !date || !branchId) return
     onSave({ name: name.trim(), date, branch_id: Number(branchId), recurring })
   }
 
   return (
-    <form onSubmit={handleSubmit}
-      className="rounded-xl border border-blue-200 bg-blue-50 p-4 mb-4">
-      <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-3">
-        {initial ? 'Edit Holiday' : 'Add Holiday'}
-      </p>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Holiday Name <span className="text-red-500">*</span></label>
-          <input value={name} onChange={(e) => setName(e.target.value)} required
-            placeholder="e.g. Diwali, Christmas"
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" />
+    <Modal title={initial ? 'Edit holiday' : 'Add holiday'} subtitle="Check-ins on a holiday are flagged automatically." onClose={onClose} size="sm"
+      footer={<>
+        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button type="submit" form="holiday-form" loading={saving}>{initial ? 'Save changes' : 'Add holiday'}</Button>
+      </>}>
+      <form id="holiday-form" onSubmit={submit} className="space-y-4">
+        <ErrorBanner error={error} />
+        <Field label="Holiday name" required>
+          <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. Diwali, Republic Day" autoFocus />
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Date" required>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          </Field>
+          <Field label="Branch" required>
+            <Select value={branchId} onChange={(e) => setBranchId(e.target.value)} required>
+              <option value="">Select branch</option>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </Select>
+          </Field>
         </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Date <span className="text-red-500">*</span></label>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Branch <span className="text-red-500">*</span></label>
-          <select value={branchId} onChange={(e) => setBranchId(e.target.value)} required
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500">
-            <option value="">Select branch</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-        </div>
-        <div className="flex flex-col justify-end">
-          <label className="flex items-center gap-2 cursor-pointer select-none pb-2">
-            <button type="button" onClick={() => setRecurring((v) => !v)}
-              className={cn('relative w-10 h-5 rounded-full transition-colors', recurring ? 'bg-blue-600' : 'bg-slate-300')}>
-              <span className={cn('absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform',
-                recurring ? 'translate-x-5' : 'translate-x-0.5')} />
-            </button>
-            <span className="text-sm text-slate-700">Recurring Yearly</span>
-          </label>
-        </div>
-      </div>
-      <div className="mt-3 flex gap-2">
-        <button type="submit" disabled={saving}
-          className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-          {saving && <span className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />}
-          {initial ? 'Save Changes' : 'Add Holiday'}
-        </button>
-        <button type="button" onClick={onCancel}
-          className="rounded-md border px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
-          Cancel
-        </button>
-      </div>
-    </form>
+        <Toggle checked={recurring} onChange={setRecurring} label="Repeats every year" description="Carried forward to the same date next year." />
+      </form>
+    </Modal>
   )
 }
 
+/** The holiday calendar: a month view plus the list, managed by HR. */
 export default function HolidayPage() {
   const qc = useQueryClient()
   const activeBranch = useAuthStore((s) => s.activeBranch)
@@ -96,20 +74,13 @@ export default function HolidayPage() {
   const { canManageEmployees } = useRole()
 
   const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth())
-  const [showAdd, setShowAdd] = useState(false)
-  const [editId, setEditId] = useState(null)
+  const todayKey = now.toLocaleDateString('en-CA')
+  const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() })
+  const [editing, setEditing] = useState(null) // null | 'new' | holiday
   const [filterBranch, setFilterBranch] = useState(activeBranch?.id ?? '')
+  const { year, month } = cursor
 
-  function prev() {
-    if (month === 0) { setYear((y) => y - 1); setMonth(11) }
-    else setMonth((m) => m - 1)
-  }
-  function next() {
-    if (month === 11) { setYear((y) => y + 1); setMonth(0) }
-    else setMonth((m) => m + 1)
-  }
+  const shift = (n) => setCursor(({ year: y, month: m }) => { const d = new Date(y, m + n, 1); return { year: d.getFullYear(), month: d.getMonth() } })
 
   const { data: branchesRaw } = useQuery({
     queryKey: ['branches'],
@@ -117,204 +88,170 @@ export default function HolidayPage() {
   })
   const branches = Array.isArray(branchesRaw) ? branchesRaw : (branchesRaw?.data ?? [])
 
+  // The whole year: the calendar shows the month, the lists show what's ahead and the year.
   const { data: holidayResp, isLoading } = useQuery({
-    queryKey: ['holidays', year, month + 1, filterBranch],
-    queryFn: () => holidayApi.list({
-      year,
-      month: month + 1,
-      ...(filterBranch ? { branch_id: filterBranch } : {}),
-    }).then((r) => r.data),
+    queryKey: ['holidays', year, filterBranch],
+    queryFn: () => holidayApi.list({ year, ...(filterBranch ? { branch_id: filterBranch } : {}) }).then((r) => r.data),
     staleTime: 60_000,
   })
-  const holidays = holidayResp?.data ?? []
+  const holidays = [...(holidayResp?.data ?? [])]
+    .filter((h) => dayKey(h).startsWith(String(year)))
+    .sort((a, b) => dayKey(a).localeCompare(dayKey(b)))
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`
+  const inMonth = holidays.filter((h) => dayKey(h).startsWith(monthPrefix))
 
-  const createMut = useMutation({
-    mutationFn: (d) => holidayApi.create(d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['holidays'] }); setShowAdd(false) },
-  })
-  const updateMut = useMutation({
-    mutationFn: ({ id, ...d }) => holidayApi.update(id, d),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['holidays'] }); setEditId(null) },
-  })
+  const done = () => { qc.invalidateQueries({ queryKey: ['holidays'] }); setEditing(null) }
+  const createMut = useMutation({ mutationFn: (d) => holidayApi.create(d), onSuccess: done })
+  const updateMut = useMutation({ mutationFn: ({ id, ...d }) => holidayApi.update(id, d), onSuccess: done })
   const deleteMut = useMutation({
     mutationFn: (id) => holidayApi.remove(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['holidays'] }),
   })
 
-  const cells = buildCalendar(year, month, holidays)
-  const todayStr = now.toISOString().slice(0, 10)
-  const upcomingHolidays = holidays
-    .filter((h) => h.date?.slice(0, 10) >= todayStr)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 5)
-
-  const editingHoliday = editId ? holidays.find((h) => h.id === editId) : null
+  const cells = buildCalendar(year, month, inMonth)
+  const monthName = new Date(year, month, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+  const upcoming = holidays.filter((h) => dayKey(h) >= todayKey)
+  const branchName = (id) => branches.find((b) => b.id === id)?.name
+  const remove = (h) => { if (confirm(`Delete "${h.name}"?`)) deleteMut.mutate(h.id) }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Holiday Calendar</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Holidays are linked to attendance — check-ins on holidays are flagged automatically.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <select value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)}
-            className="rounded-md border bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500">
-            <option value="">All Branches</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-          {canManageEmployees && !showAdd && !editId && (
-            <button onClick={() => setShowAdd(true)}
-              className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-              <Plus size={15} /> Add Holiday
-            </button>
+    <div>
+      <PageHeader icon={CalendarDays} title="Holiday calendar"
+        subtitle="Holidays feed attendance and payroll — check-ins on a holiday are flagged automatically."
+        actions={<>
+          {branches.length > 1 && (
+            <Select className="w-auto min-w-44" value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)}>
+              <option value="">All branches</option>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </Select>
           )}
-        </div>
-      </div>
+          {canManageEmployees && <Button icon={Plus} onClick={() => setEditing('new')}>Add holiday</Button>}
+        </>} />
 
-      {/* Add/Edit form */}
-      {(showAdd || editId) && (
-        <HolidayForm
-          initial={editingHoliday}
-          branches={branches}
-          activeBranchId={activeBranchId}
-          onSave={(d) => editId ? updateMut.mutate({ id: editId, ...d }) : createMut.mutate(d)}
-          onCancel={() => { setShowAdd(false); setEditId(null) }}
-          saving={createMut.isPending || updateMut.isPending}
-        />
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar */}
-        <div className="lg:col-span-2 rounded-xl border bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <button onClick={prev} className="rounded p-1 hover:bg-slate-100"><ChevronLeft size={18} /></button>
-            <h2 className="text-sm font-semibold text-slate-900">{MONTH_NAMES[month]} {year}</h2>
-            <button onClick={next} className="rounded p-1 hover:bg-slate-100"><ChevronRight size={18} /></button>
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <Card padded={false} className="lg:col-span-2">
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+            <div>
+              <p className="text-[15px] font-semibold text-slate-900">{monthName}</p>
+              <p className="text-xs text-slate-500">{inMonth.length ? `${inMonth.length} holiday${inMonth.length === 1 ? '' : 's'} this month` : 'No holidays this month'}</p>
+            </div>
+            <div className="flex gap-1">
+              <Button variant="secondary" size="sm" icon={ChevronLeft} onClick={() => shift(-1)} aria-label="Previous month" />
+              <Button variant="secondary" size="sm" onClick={() => setCursor({ year: now.getFullYear(), month: now.getMonth() })}>Today</Button>
+              <Button variant="secondary" size="sm" icon={ChevronRight} onClick={() => shift(1)} aria-label="Next month" />
+            </div>
           </div>
 
-          {isLoading ? (
-            <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div>
-          ) : (
+          {isLoading ? <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div> : (
             <div className="p-4">
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {DAY_NAMES.map((d) => (
-                  <div key={d} className="text-center text-xs font-semibold text-slate-400 py-1">{d}</div>
-                ))}
+              <div className="mb-2 grid grid-cols-7 gap-1.5">
+                {DAY_NAMES.map((d) => <div key={d} className="text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">{d}</div>)}
               </div>
-              <div className="grid grid-cols-7 gap-1">
-                {cells.map((cell, i) => {
-                  if (!cell) return <div key={`blank-${i}`} />
-                  const isToday = cell.date === todayStr
-                  const dow = new Date(cell.date).getDay()
+              <div className="grid grid-cols-7 gap-1.5">
+                {cells.map((c, i) => {
+                  if (!c) return <div key={`b${i}`} />
+                  const weekend = c.dow === 0 || c.dow === 6
+                  const today = c.date === todayKey
+                  const clickable = c.holiday && canManageEmployees
                   return (
-                    <div
-                      key={cell.date}
-                      title={cell.holiday?.name}
-                      onClick={() => {
-                        if (cell.holiday && canManageEmployees) setEditId(cell.holiday.id)
-                      }}
-                      className={cn(
-                        'aspect-square flex flex-col items-center justify-center rounded-lg text-xs transition-colors relative',
-                        isToday && 'ring-2 ring-blue-500',
-                        cell.holiday
-                          ? 'bg-red-100 cursor-pointer hover:bg-red-200'
-                          : dow === 0 || dow === 6
-                            ? 'bg-slate-50'
-                            : 'hover:bg-slate-50'
+                    <div key={c.date} title={c.holiday?.name}
+                      onClick={clickable ? () => setEditing(c.holiday) : undefined}
+                      className={cn('relative flex min-h-[76px] flex-col rounded-lg p-2 ring-1 ring-inset transition-colors',
+                        c.holiday ? 'bg-rose-50 ring-rose-200' : weekend ? 'bg-slate-50 ring-slate-100' : 'bg-white ring-slate-100',
+                        clickable && 'cursor-pointer hover:bg-rose-100',
+                        today && 'ring-2 ring-blue-500')}>
+                      <span className={cn('text-[13px] font-semibold',
+                        today ? 'text-blue-700' : c.holiday ? 'text-rose-700' : weekend ? 'text-slate-400' : 'text-slate-700')}>{c.day}</span>
+                      {c.holiday && (
+                        <span className="mt-auto line-clamp-2 text-[10.5px] font-medium leading-tight text-rose-700">{c.holiday.name}</span>
                       )}
-                    >
-                      <span className={cn(
-                        'font-medium',
-                        isToday ? 'text-blue-700' : cell.holiday ? 'text-red-700' : dow === 0 || dow === 6 ? 'text-slate-400' : 'text-slate-700'
-                      )}>{cell.day}</span>
-                      {cell.holiday && (
-                        <span className="text-[8px] text-red-600 font-medium mt-0.5 px-0.5 truncate w-full text-center leading-tight">
-                          {cell.holiday.name}
-                        </span>
-                      )}
-                      {cell.holiday?.recurring && (
-                        <RefreshCw size={7} className="text-red-400 absolute top-1 right-1" />
-                      )}
+                      {c.holiday?.recurring && <Repeat size={10} className="absolute right-1.5 top-2 text-rose-400" />}
                     </div>
                   )
                 })}
               </div>
-
-              <div className="flex gap-4 mt-4 text-xs text-slate-500 flex-wrap">
-                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-red-100 inline-block" />Holiday {canManageEmployees && '(click to edit)'}</span>
-                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded ring-2 ring-blue-500 inline-block" />Today</span>
-                <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-slate-50 inline-block" />Weekend</span>
-                <span className="flex items-center gap-1.5"><RefreshCw size={10} className="text-red-400" />Recurring</span>
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-slate-500">
+                <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-rose-50 ring-1 ring-inset ring-rose-200" />Holiday{canManageEmployees && ' (click to edit)'}</span>
+                <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-slate-50 ring-1 ring-inset ring-slate-200" />Weekend</span>
+                <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded ring-2 ring-blue-500" />Today</span>
+                <span className="flex items-center gap-1.5"><Repeat size={10} className="text-rose-400" />Repeats yearly</span>
               </div>
             </div>
           )}
-        </div>
+        </Card>
 
-        {/* Right sidebar */}
-        <div className="space-y-4">
-          {/* Upcoming */}
-          <div className="rounded-xl border bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-              <CalendarDays size={15} /> Upcoming Holidays
-            </h3>
-            {upcomingHolidays.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-4">No upcoming holidays this month.</p>
+        <div className="space-y-6">
+          <Card padded={false}>
+            <CardHeader icon={PartyPopper} title="Coming up" subtitle={year === now.getFullYear() ? 'Next holidays' : `From ${year}`} />
+            {upcoming.length === 0 ? (
+              <p className="px-5 py-8 text-center text-[13px] text-slate-400">No more holidays in {year}.</p>
             ) : (
-              <div className="space-y-3">
-                {upcomingHolidays.map((h) => (
-                  <div key={h.id} className="flex gap-3 items-start">
-                    <div className="rounded-lg bg-red-50 px-2.5 py-1.5 text-center min-w-[44px]">
-                      <p className="text-xs font-bold text-red-600">{new Date(h.date).toLocaleDateString('default', { day: '2-digit' })}</p>
-                      <p className="text-[10px] text-red-400">{new Date(h.date).toLocaleDateString('default', { month: 'short' })}</p>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900">{h.name}</p>
-                      <p className="text-xs text-slate-400">{new Date(h.date).toLocaleDateString('default', { weekday: 'long' })}</p>
-                      {h.recurring && <span className="text-[10px] text-indigo-500 flex items-center gap-0.5"><RefreshCw size={9} />Recurring</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* All this month as list with management */}
-          <div className="rounded-xl border bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-900 mb-3">All Holidays This Month</h3>
-            {holidays.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-4">No holidays this month.</p>
-            ) : (
-              <div className="space-y-2">
-                {holidays.map((h) => (
-                  <div key={h.id} className="flex items-center justify-between gap-2 group">
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm text-slate-800 font-medium">{h.name}</span>
-                      {h.recurring && <RefreshCw size={10} className="text-indigo-400 inline ml-1" />}
-                      <span className="text-xs text-slate-400 ml-2">{h.date?.slice(5)}</span>
-                    </div>
-                    {canManageEmployees && (
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setEditId(h.id); setShowAdd(false) }}
-                          className="rounded p-1 text-slate-400 hover:text-blue-600">
-                          <Edit2 size={12} />
-                        </button>
-                        <button onClick={() => { if (confirm(`Delete "${h.name}"?`)) deleteMut.mutate(h.id) }}
-                          className="rounded p-1 text-slate-400 hover:text-red-500">
-                          <Trash2 size={12} />
-                        </button>
+              <ul className="divide-y divide-slate-100">
+                {upcoming.slice(0, 5).map((h) => {
+                  const d = asDate(dayKey(h))
+                  return (
+                    <li key={h.id} className="flex items-center gap-3 px-5 py-3">
+                      <div className="flex w-11 shrink-0 flex-col items-center rounded-lg bg-rose-50 py-1 ring-1 ring-inset ring-rose-100">
+                        <span className="text-[10px] font-semibold uppercase text-rose-500">{d.toLocaleDateString('en-IN', { month: 'short' })}</span>
+                        <span className="text-base font-semibold leading-5 text-rose-700">{d.getDate()}</span>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-medium text-slate-900">{h.name}</p>
+                        <p className="text-xs text-slate-500">{d.toLocaleDateString('en-IN', { weekday: 'long' })}{h.recurring && ' · yearly'}</p>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
             )}
-          </div>
+          </Card>
+
+          <Card padded={false}>
+            <CardHeader title={`All holidays in ${year}`} subtitle={`${holidays.length} holiday${holidays.length === 1 ? '' : 's'}`} />
+            {holidays.length === 0 ? (
+              <EmptyState icon={CalendarDays} title={`No holidays in ${year}`}
+                action={canManageEmployees && <Button size="sm" variant="soft" icon={Plus} onClick={() => setEditing('new')}>Add holiday</Button>} />
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {holidays.map((h) => {
+                  const d = asDate(dayKey(h))
+                  return (
+                    <li key={h.id} className="group flex items-center gap-3 px-5 py-2.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-center gap-1.5 truncate text-[13px] font-medium text-slate-800">
+                          {h.name}{h.recurring && <Repeat size={11} className="shrink-0 text-slate-400" />}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                          {!filterBranch && branchName(h.branch_id) && ` · ${branchName(h.branch_id)}`}
+                        </p>
+                      </div>
+                      {canManageEmployees && (
+                        <div className="flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                          <IconButton icon={Pencil} label="Edit" tone="primary" onClick={() => setEditing(h)} />
+                          <IconButton icon={Trash2} label="Delete" tone="danger" onClick={() => remove(h)} />
+                        </div>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </Card>
         </div>
       </div>
+
+      {editing && (
+        <HolidayModal
+          initial={editing === 'new' ? null : editing}
+          branches={branches}
+          activeBranchId={activeBranchId}
+          saving={createMut.isPending || updateMut.isPending}
+          error={createMut.error || updateMut.error}
+          onSave={(d) => (editing === 'new' ? createMut.mutate(d) : updateMut.mutate({ id: editing.id, ...d }))}
+          onClose={() => { setEditing(null); createMut.reset(); updateMut.reset() }}
+        />
+      )}
     </div>
   )
 }
