@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { BellRing, Mail, MessageSquare, MessageCircle, Save, CheckCircle2 } from 'lucide-react'
+import { BellRing, Mail, MessageSquare, MessageCircle, Smartphone, Save, CheckCircle2 } from 'lucide-react'
 import { notificationApi } from '@/lib/api/notifications'
 import { Spinner } from '@/components/ui/Spinner'
 import { PageHeader, Card, Button, Field, Input, Toggle, ErrorBanner } from '@/components/ui/kit'
@@ -9,6 +9,7 @@ const META = {
   email: { label: 'Email', icon: Mail, description: 'Approvals, decisions and payslips in your inbox.' },
   sms: { label: 'SMS', icon: MessageSquare, description: 'Short text messages to your mobile.' },
   whatsapp: { label: 'WhatsApp', icon: MessageCircle, description: 'Messages on WhatsApp from your organisation.' },
+  push: { label: 'Mobile app', icon: Smartphone, description: 'Push notifications on phones where you’re signed in to the PeopleNex app.' },
 }
 
 /** My own notification channels: opt out per channel, and the mobile number to use. */
@@ -50,6 +51,7 @@ function PreferencesForm({ data }) {
       <ErrorBanner error={save.error} />
       {available.map((c) => {
         const m = META[c.channel]
+        if (!m) return null
         const Icon = m.icon
         return (
           <div key={c.channel} className="flex items-start justify-between gap-4">
@@ -64,7 +66,7 @@ function PreferencesForm({ data }) {
           </div>
         )
       })}
-      {available.some((c) => c.channel !== 'email') && (
+      {available.some((c) => ['sms', 'whatsapp'].includes(c.channel)) && (
         <Field label="Mobile number for SMS / WhatsApp"
           hint={!phone && data.profile_phone
             ? `Using the number on your employee profile (${data.profile_phone}). Enter another to use that instead.`
