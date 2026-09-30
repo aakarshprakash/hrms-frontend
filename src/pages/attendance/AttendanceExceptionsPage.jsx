@@ -1,166 +1,100 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import {
-  AlertTriangle, BarChart3, Grid3x3, LogOut, Hourglass, CalendarX2, CheckCircle2,
-} from 'lucide-react'
+import { AlertTriangle, LogOut, Hourglass, CalendarX2, CheckCircle2 } from 'lucide-react'
 import { attendanceApi } from '@/lib/api/attendance'
 import { branchApi } from '@/lib/api/departments'
 import { useAuthStore } from '@/store/authStore'
+import { timeLabel, minutesLabel } from '@/lib/format'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn } from '@/lib/utils'
+import { PageHeader, Card, CardHeader, Select, Tabs, Avatar, ErrorBanner, StatCard } from '@/components/ui/kit'
+import ReportNav from '@/components/attendance/ReportNav'
 
-function fmtDate(d) {
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-}
+const day = (d) => new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
 
-function ExceptionSection({ icon: Icon, title, subtitle, color, count, children, empty }) {
+function Section({ icon, title, subtitle, items, empty, render }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-100 p-5">
-        <div className="flex items-center gap-2.5">
-          <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', color)}>
-            <Icon size={16} className="text-white" />
-          </div>
-          <div>
-            <h2 className="text-[14px] font-bold text-slate-900">{title}</h2>
-            <p className="text-[11px] text-slate-400">{subtitle}</p>
-          </div>
+    <Card padded={false}>
+      <CardHeader icon={icon} title={title} subtitle={subtitle}
+        actions={<span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-slate-600">{items.length}</span>} />
+      {items.length === 0 ? (
+        <div className="flex items-center justify-center gap-2 px-5 py-8 text-[13px] text-slate-500">
+          <CheckCircle2 size={16} className="text-emerald-500" />{empty}
         </div>
-        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[12px] font-bold text-slate-600">{count}</span>
-      </div>
-      <div className="p-2">
-        {count === 0 ? (
-          <div className="flex flex-col items-center py-8 text-center">
-            <CheckCircle2 size={22} className="mb-1.5 text-emerald-400" />
-            <p className="text-[12.5px] text-slate-400">{empty}</p>
-          </div>
-        ) : children}
-      </div>
-    </div>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {items.map((item, i) => {
+            const [detail, meta] = render(item)
+            return (
+              <li key={item.attendance_id ?? i} className="flex items-center gap-3 px-5 py-2.5">
+                <Avatar name={item.employee.name} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-medium text-slate-900">{item.employee.name}</p>
+                  <p className="text-xs text-slate-500">{item.employee.employee_code}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[13px] font-medium text-slate-800">{detail}</p>
+                  <p className="text-xs text-slate-500">{meta}</p>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </Card>
   )
 }
 
+/** Attendance worth a second look: missed checkouts, absence streaks and short days. */
 export default function AttendanceExceptionsPage() {
   const activeBranchId = useAuthStore((s) => s.activeBranchId)
   const [branchId, setBranchId] = useState(activeBranchId ?? '')
-  const [days, setDays] = useState(14)
+  const [days, setDays] = useState('14')
 
-  const { data: branchesData } = useQuery({
+  const { data: branches = [] } = useQuery({
     queryKey: ['branches'],
-    queryFn: () => branchApi.list().then((r) => r.data),
+    queryFn: () => branchApi.list().then((r) => r.data?.data ?? []),
   })
-
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['attendance-exceptions', branchId, days],
-    queryFn: () => attendanceApi.exceptions({ branch_id: branchId || undefined, days }).then((r) => r.data?.data),
+    queryFn: () => attendanceApi.exceptions({ branch_id: branchId || undefined, days: Number(days) }).then((r) => r.data?.data),
   })
-
-  const field = 'rounded-xl border-0 bg-slate-100/80 px-3.5 py-2 text-sm text-slate-700 outline-none ring-1 ring-transparent focus:bg-white focus:ring-2 focus:ring-blue-500/60'
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-rose-500 text-white shadow-lg shadow-rose-500/20">
-            <AlertTriangle size={20} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Attendance Exceptions</h1>
-            <p className="text-[13px] text-slate-500">Things worth a second look — missed checkouts, short days, and absence streaks.</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Link to="/attendance/reports"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-            <BarChart3 size={13} /> Reports
-          </Link>
-          <Link to="/attendance/muster-roll"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-            <Grid3x3 size={13} /> Muster Roll
-          </Link>
-        </div>
+    <div>
+      <PageHeader icon={AlertTriangle} title="Attendance reports" subtitle="Summaries, the monthly register and anything that needs a second look." />
+      <ReportNav />
+
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        {branches.length > 1 && (
+          <Select className="w-auto min-w-44" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+            <option value="">All branches</option>
+            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </Select>
+        )}
+        <Tabs variant="pills" value={days} onChange={setDays}
+          tabs={[{ key: '7', label: 'Last 7 days' }, { key: '14', label: 'Last 14 days' }, { key: '30', label: 'Last 30 days' }]} />
       </div>
 
-      <div className="mb-5 flex flex-wrap items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-        <select value={branchId} onChange={(e) => setBranchId(e.target.value)} className={field}>
-          <option value="">All Branches</option>
-          {(branchesData?.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </select>
-        <select value={days} onChange={(e) => setDays(Number(e.target.value))} className={field}>
-          <option value={7}>Last 7 days</option>
-          <option value={14}>Last 14 days</option>
-          <option value={30}>Last 30 days</option>
-        </select>
-      </div>
-
-      {isLoading && <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div>}
-      {isError && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">Failed to load exceptions.</div>
-      )}
-
-      {!isLoading && !isError && data && (
-        <div className="space-y-5">
-          <ExceptionSection
-            icon={LogOut} color="bg-amber-500" title="Missed Checkouts"
-            subtitle="Checked in but never checked out" count={data.missed_checkouts.length}
-            empty="No missed checkouts in this window.">
-            <div className="space-y-1">
-              {data.missed_checkouts.map((m) => (
-                <div key={m.attendance_id} className="flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-slate-50">
-                  <div>
-                    <p className="text-[13px] font-semibold text-slate-800">{m.employee.name}</p>
-                    <p className="text-[11px] text-slate-400">{m.employee.employee_code}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[12.5px] text-slate-600">{fmtDate(m.date)}</p>
-                    <p className="text-[11px] text-slate-400">Checked in {new Date(m.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ExceptionSection>
-
-          <ExceptionSection
-            icon={CalendarX2} color="bg-rose-500" title="Consecutive Absences"
-            subtitle="3 or more unbroken absent days" count={data.consecutive_absences.length}
-            empty="No absence streaks in this window.">
-            <div className="space-y-1">
-              {data.consecutive_absences.map((c, i) => (
-                <div key={i} className="flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-slate-50">
-                  <div>
-                    <p className="text-[13px] font-semibold text-slate-800">{c.employee.name}</p>
-                    <p className="text-[11px] text-slate-400">{c.employee.employee_code}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[12.5px] font-semibold text-rose-600">{c.days} days</p>
-                    <p className="text-[11px] text-slate-400">{fmtDate(c.start_date)} – {fmtDate(c.end_date)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ExceptionSection>
-
-          <ExceptionSection
-            icon={Hourglass} color="bg-blue-500" title="Short Days"
-            subtitle='Marked "present" despite under 4 hours worked' count={data.short_days.length}
-            empty="No short days flagged in this window.">
-            <div className="space-y-1">
-              {data.short_days.map((s) => (
-                <div key={s.attendance_id} className="flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-slate-50">
-                  <div>
-                    <p className="text-[13px] font-semibold text-slate-800">{s.employee.name}</p>
-                    <p className="text-[11px] text-slate-400">{s.employee.employee_code}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[12.5px] text-slate-600">{fmtDate(s.date)}</p>
-                    <p className="text-[11px] text-slate-400">{Math.round(s.worked_minutes / 60 * 10) / 10}h worked</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ExceptionSection>
-        </div>
+      <ErrorBanner error={error} className="mb-4" />
+      {isLoading ? <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div> : data && (
+        <>
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatCard label="Missed checkouts" value={data.missed_checkouts.length} icon={LogOut} tone="amber" hint="Checked in, never out" />
+            <StatCard label="Absence streaks" value={data.consecutive_absences.length} icon={CalendarX2} tone="red" hint="3+ absent days in a row" />
+            <StatCard label="Short days" value={data.short_days.length} icon={Hourglass} tone="blue" hint="Present with under 4 hours" />
+          </div>
+          <div className="grid items-start gap-6 xl:grid-cols-3">
+            <Section icon={LogOut} title="Missed checkouts" subtitle="Checked in but never checked out"
+              items={data.missed_checkouts} empty="No missed checkouts"
+              render={(m) => [day(m.date), `In at ${timeLabel(m.check_in)}`]} />
+            <Section icon={CalendarX2} title="Absence streaks" subtitle="3 or more unbroken absent days"
+              items={data.consecutive_absences} empty="No absence streaks"
+              render={(c) => [<span className="text-rose-600">{c.days} days</span>, `${day(c.start_date)} – ${day(c.end_date)}`]} />
+            <Section icon={Hourglass} title="Short days" subtitle='Marked present with under 4 hours worked'
+              items={data.short_days} empty="No short days"
+              render={(s) => [day(s.date), `${minutesLabel(s.worked_minutes)} worked`]} />
+          </div>
+        </>
       )}
     </div>
   )

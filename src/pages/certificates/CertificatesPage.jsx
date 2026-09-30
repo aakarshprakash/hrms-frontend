@@ -1,348 +1,214 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Plus, FileText, Edit, Globe, Copy, Trash2, Send } from 'lucide-react'
+import { Plus, FileText, Pencil, Globe, Copy, Send, Award, Eye, Download, Check, X } from 'lucide-react'
 import { certificateApi, openIssuedCertificatePdf } from '@/lib/api/certificates'
 import { useAuthStore } from '@/store/authStore'
 import { useRole } from '@/hooks/useRole'
-import { Badge } from '@/components/ui/Badge'
+import { dateLabel } from '@/lib/format'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn } from '@/lib/utils'
+import { PageHeader, Card, Button, Modal, Tabs, Table, StatusPill, EmptyState, Avatar } from '@/components/ui/kit'
 
-const TYPE_LABELS = {
-  experience: 'Experience', joining: 'Joining', salary_hike: 'Salary Hike',
-  relieving: 'Relieving', noc: 'NOC', custom: 'Custom',
-}
+const TYPE_LABELS = { experience: 'Experience', joining: 'Joining', salary_hike: 'Salary hike', relieving: 'Relieving', noc: 'NOC', custom: 'Custom' }
+const typeLabel = (t) => TYPE_LABELS[t] ?? t
+const loading = <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div>
 
-function TemplateCard({ template, onPublish, onClone, onDelete, onRequest }) {
-  const isPublished = template.status === 'published'
-  return (
-    <div className="rounded-2xl border bg-white shadow-sm p-5 flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className={cn('h-2 w-2 rounded-full', isPublished ? 'bg-emerald-500' : 'bg-slate-300')} />
-            <p className="text-sm font-semibold text-slate-900">{template.name}</p>
-          </div>
-          <p className="text-xs text-slate-500">{TYPE_LABELS[template.type] ?? template.type} Certificate</p>
-        </div>
-        <Badge label={isPublished ? 'Published' : 'Draft'} variant={isPublished ? 'active' : 'inactive'} />
-      </div>
-
-      <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
-        <Link to={`/certificates/templates/${template.id}/edit`}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
-          <Edit size={12} /> Edit
-        </Link>
-        {!isPublished && (
-          <button onClick={() => onPublish(template.id)}
-            className="flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100">
-            <Globe size={12} /> Publish
-          </button>
-        )}
-        {isPublished && (
-          <button onClick={() => onRequest(template)}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-50 border border-blue-200 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100">
-            <Send size={12} /> Request
-          </button>
-        )}
-        <button onClick={() => onClone(template.id)}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
-          <Copy size={12} /> Clone
-        </button>
-      </div>
-    </div>
+function useFlash() {
+  const [flash, setFlash] = useState(null)
+  const show = (msg, type = 'success') => { setFlash({ msg, type }); setTimeout(() => setFlash(null), 4000) }
+  const node = flash && (
+    <div className={flash.type === 'success'
+      ? 'mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-[13px] font-medium text-emerald-700'
+      : 'mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-[13px] font-medium text-rose-700'}>{flash.msg}</div>
   )
+  return [node, show]
 }
 
-function RequestModal({ template, onClose, onSubmit }) {
-  const [submitting, setSubmitting] = useState(false)
-  async function handleSubmit() {
-    setSubmitting(true)
-    await onSubmit(template.id)
-    setSubmitting(false)
-    onClose()
-  }
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="rounded-2xl border bg-white shadow-xl p-6 w-full max-w-sm">
-        <h3 className="text-base font-semibold text-slate-900 mb-2">Request Certificate</h3>
-        <p className="text-sm text-slate-500 mb-4">
-          You are requesting a <strong>{template.name}</strong>. HR will review and issue the certificate.
-        </p>
-        <div className="flex gap-3">
-          <button onClick={handleSubmit} disabled={submitting}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-            {submitting && <Spinner className="h-4 w-4 border-white border-t-transparent" />}
-            Submit Request
-          </button>
-          <button onClick={onClose} className="rounded-xl border px-5 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function PendingRequestsPanel({ onRefresh }) {
+function TemplatesTab({ templates, isLoading, notify, onRequest }) {
   const qc = useQueryClient()
-  const [toast, setToast] = useState(null)
-  function notify(msg, type = 'success') { setToast({ msg, type }); setTimeout(() => setToast(null), 4000) }
+  const refresh = () => qc.invalidateQueries({ queryKey: ['certificate-templates'] })
+  const publish = useMutation({ mutationFn: (id) => certificateApi.publishTemplate(id), onSuccess: () => { refresh(); notify('Template published — employees can now request it.') } })
+  const clone = useMutation({ mutationFn: (id) => certificateApi.cloneTemplate(id), onSuccess: () => { refresh(); notify('Template copied as a draft.') } })
 
+  if (isLoading) return loading
+  if (!templates.length) {
+    return <Card><EmptyState icon={FileText} title="No templates yet" description="Design a letter once — joining, experience, relieving — and issue it to anyone in a click."
+      action={<Link to="/certificates/templates/new"><Button icon={Plus}>New template</Button></Link>} /></Card>
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {templates.map((t) => {
+        const published = t.status === 'published'
+        return (
+          <Card key={t.id} padded={false} className="flex flex-col">
+            <div className="flex items-start gap-3 p-5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-100"><FileText size={18} /></div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[14px] font-semibold text-slate-900">{t.name}</p>
+                <p className="text-xs text-slate-500">{typeLabel(t.type)} letter</p>
+              </div>
+              <StatusPill status={published ? 'published' : 'draft'} />
+            </div>
+            <div className="mt-auto flex flex-wrap gap-2 border-t border-slate-100 px-5 py-3">
+              <Link to={`/certificates/templates/${t.id}/edit`}><Button variant="secondary" size="sm" icon={Pencil}>Edit</Button></Link>
+              {published
+                ? <Button variant="soft" size="sm" icon={Send} onClick={() => onRequest(t)}>Request</Button>
+                : <Button variant="soft" size="sm" icon={Globe} loading={publish.isPending && publish.variables === t.id} onClick={() => publish.mutate(t.id)}>Publish</Button>}
+              <Button variant="ghost" size="sm" icon={Copy} onClick={() => clone.mutate(t.id)}>Duplicate</Button>
+            </div>
+          </Card>
+        )
+      })}
+    </div>
+  )
+}
+
+function PendingTab({ notify }) {
+  const qc = useQueryClient()
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ['cert-requests', 'pending'],
     queryFn: () => certificateApi.listRequests({ status: 'pending' }).then((r) => r.data?.data ?? []),
   })
+  const done = (msg) => () => { qc.invalidateQueries({ queryKey: ['cert-requests'] }); notify(msg) }
+  const approve = useMutation({ mutationFn: (id) => certificateApi.approveRequest(id), onSuccess: done('Certificate issued.'), onError: () => notify('Couldn’t issue the certificate.', 'error') })
+  const reject = useMutation({ mutationFn: (id) => certificateApi.rejectRequest(id), onSuccess: done('Request declined.') })
 
-  const approveMutation = useMutation({
-    mutationFn: (id) => certificateApi.approveRequest(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cert-requests'] }); notify('Certificate issued.') },
-    onError: () => notify('Failed to issue.', 'error'),
-  })
-
-  const rejectMutation = useMutation({
-    mutationFn: (id) => certificateApi.rejectRequest(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cert-requests'] }); notify('Request rejected.') },
-  })
-
-  if (isLoading) return <div className="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>
-  if (!requests.length) return (
-    <div className="rounded-2xl border border-dashed py-8 text-center text-sm text-slate-400">No pending certificate requests.</div>
-  )
-
+  if (isLoading) return loading
   return (
-    <div className="space-y-3">
-      {toast && (
-        <div className={cn('rounded-xl px-4 py-3 text-sm font-medium',
-          toast.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200')}>
-          {toast.msg}
-        </div>
-      )}
-      {requests.map((req) => (
-        <div key={req.id} className="rounded-2xl border bg-white p-4 shadow-sm flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">
-              {req.employee?.first_name} {req.employee?.last_name}
-            </p>
-            <p className="text-xs text-slate-500">{req.template?.name} · Requested {new Date(req.created_at).toLocaleDateString()}</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => approveMutation.mutate(req.id)}
-              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">
-              Issue
-            </button>
-            <button onClick={() => rejectMutation.mutate(req.id)}
-              className="rounded-lg bg-red-50 border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100">
-              Reject
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
+    <Card padded={false}>
+      <Table rows={requests} empty={<EmptyState icon={Award} title="No pending requests" description="Requests from employees show up here for you to issue." />}
+        columns={[
+          { key: 'employee', label: 'Employee', render: (r) => {
+            const name = `${r.employee?.first_name ?? ''} ${r.employee?.last_name ?? ''}`.trim()
+            return <div className="flex items-center gap-2.5"><Avatar name={name} size="sm" /><span className="font-medium text-slate-900">{name}</span></div>
+          } },
+          { key: 'template', label: 'Document', render: (r) => r.template?.name ?? '—' },
+          { key: 'requested', label: 'Requested', render: (r) => dateLabel(r.created_at) },
+          { key: 'actions', label: '', align: 'right', render: (r) => (
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="success" icon={Check} loading={approve.isPending && approve.variables === r.id} onClick={() => approve.mutate(r.id)}>Issue</Button>
+              <Button size="sm" variant="secondary" icon={X} onClick={() => reject.mutate(r.id)}>Decline</Button>
+            </div>
+          ) },
+        ]} />
+    </Card>
   )
 }
 
-export default function CertificatesPage() {
-  const qc = useQueryClient()
+function MyRequestsTab({ templates, onRequest }) {
   const user = useAuthStore((s) => s.user)
-  const { hasRole } = useRole()
-  const isHR = hasRole('hr') || hasRole('branch_admin') || hasRole('super_admin')
-  const [tab, setTab] = useState(isHR ? 'templates' : 'requests')
-  const [requestTarget, setRequestTarget] = useState(null)
-  const [toast, setToast] = useState(null)
-
-  function notify(msg, type = 'success') { setToast({ msg, type }); setTimeout(() => setToast(null), 4000) }
-
-  const { data: templates = [], isLoading } = useQuery({
-    queryKey: ['certificate-templates'],
-    queryFn: () => certificateApi.listTemplates().then((r) => r.data?.data ?? []),
-  })
-
-  const { data: myRequests = [], isLoading: myLoading } = useQuery({
+  const { data: requests = [], isLoading } = useQuery({
     queryKey: ['cert-requests', 'my', user?.employee_id],
     queryFn: () => certificateApi.listRequests({ employee_id: user?.employee_id }).then((r) => r.data?.data ?? []),
     enabled: !!user?.employee_id,
   })
+  const available = templates.filter((t) => t.status === 'published')
 
-  const publishMutation = useMutation({
-    mutationFn: (id) => certificateApi.publishTemplate(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['certificate-templates'] }); notify('Published!') },
-  })
-
-  const cloneMutation = useMutation({
-    mutationFn: (id) => certificateApi.cloneTemplate(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['certificate-templates'] }); notify('Cloned.') },
-  })
-
-  const requestMutation = useMutation({
-    mutationFn: (templateId) => certificateApi.submitRequest({ template_id: templateId }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cert-requests'] }); notify('Request submitted.') },
-    onError: () => notify('Request failed.', 'error'),
-  })
-
-  const tabs = [
-    ...(isHR ? [{ key: 'templates', label: 'Templates' }, { key: 'pending', label: 'Pending Requests' }] : []),
-    { key: 'requests', label: 'My Requests' },
-    { key: 'issued', label: 'My Certificates' },
-  ]
-
+  if (isLoading) return loading
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Certificates</h1>
-        {isHR && (
-          <Link to="/certificates/templates/new"
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm shadow-blue-500/20">
-            <Plus size={16} /> New Template
-          </Link>
+      <div>
+        <h2 className="mb-3 text-[13px] font-semibold text-slate-700">Request a document</h2>
+        {available.length === 0 ? (
+          <Card><p className="text-center text-[13px] text-slate-500">HR hasn’t published any letters for request yet.</p></Card>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {available.map((t) => (
+              <button key={t.id} onClick={() => onRequest(t)}
+                className="group flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white p-4 text-left shadow-xs transition-all hover:border-blue-300 hover:shadow-md">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><FileText size={17} /></div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-semibold text-slate-900 group-hover:text-blue-700">{t.name}</p>
+                  <p className="text-xs text-slate-500">{typeLabel(t.type)}</p>
+                </div>
+                <Send size={15} className="text-slate-300 group-hover:text-blue-500" />
+              </button>
+            ))}
+          </div>
         )}
       </div>
-
-      {toast && (
-        <div className={cn('rounded-xl px-4 py-3 text-sm font-medium',
-          toast.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200')}>
-          {toast.msg}
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl bg-slate-100 w-fit flex-wrap">
-        {tabs.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={cn('rounded-lg px-4 py-1.5 text-sm font-medium transition-colors',
-              tab === t.key ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700')}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Templates grid */}
-      {tab === 'templates' && isHR && (
-        isLoading ? <div className="flex justify-center py-12"><Spinner className="h-8 w-8" /></div> : (
-          templates.length === 0 ? (
-            <div className="rounded-2xl border border-dashed py-16 text-center">
-              <FileText size={32} className="mx-auto text-slate-300 mb-3" />
-              <p className="text-sm text-slate-400">No templates yet.</p>
-              <Link to="/certificates/templates/new" className="mt-3 inline-block text-sm text-blue-600 hover:underline">Create your first template</Link>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {templates.map((t) => (
-                <TemplateCard key={t.id} template={t}
-                  onPublish={(id) => publishMutation.mutate(id)}
-                  onClone={(id) => cloneMutation.mutate(id)}
-                  onRequest={(tmpl) => setRequestTarget(tmpl)}
-                  onDelete={() => {}}
-                />
-              ))}
-            </div>
-          )
-        )
-      )}
-
-      {/* Pending approval */}
-      {tab === 'pending' && isHR && <PendingRequestsPanel />}
-
-      {/* My requests */}
-      {tab === 'requests' && (
-        myLoading ? <div className="flex justify-center py-12"><Spinner className="h-8 w-8" /></div> : (
-          <div className="space-y-6">
-            {/* Published templates to request from */}
-            <div>
-              <h2 className="text-sm font-semibold text-slate-700 mb-3">Available Certificate Types</h2>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {templates.filter((t) => t.status === 'published').map((t) => (
-                  <button key={t.id} onClick={() => setRequestTarget(t)}
-                    className="rounded-2xl border bg-white p-4 shadow-sm text-left hover:shadow-md hover:-translate-y-0.5 transition-all group">
-                    <div className="flex items-center gap-2.5 mb-1">
-                      <FileText size={16} className="text-blue-500" />
-                      <p className="text-sm font-semibold text-slate-900">{t.name}</p>
-                    </div>
-                    <p className="text-xs text-slate-500">{TYPE_LABELS[t.type] ?? t.type}</p>
-                    <p className="text-xs text-blue-600 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Click to request →</p>
-                  </button>
-                ))}
-                {templates.filter((t) => t.status === 'published').length === 0 && (
-                  <p className="text-sm text-slate-400 col-span-full py-4">No published certificate types available yet.</p>
-                )}
-              </div>
-            </div>
-            {/* Previous requests */}
-            {myRequests.length > 0 && (
-              <div>
-                <h2 className="text-sm font-semibold text-slate-700 mb-3">My Requests</h2>
-                <div className="space-y-2">
-                  {myRequests.map((req) => (
-                    <div key={req.id} className="rounded-xl border bg-white px-4 py-3 flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{req.template?.name}</p>
-                        <p className="text-xs text-slate-400">{new Date(req.created_at).toLocaleDateString()}</p>
-                      </div>
-                      <Badge label={req.status} variant={req.status === 'approved' ? 'active' : req.status === 'rejected' ? 'terminated' : 'default'} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      )}
-
-      {/* My issued certificates */}
-      {tab === 'issued' && <IssuedCertsTab employeeId={user?.employee_id} />}
-
-      {/* Request modal */}
-      {requestTarget && (
-        <RequestModal
-          template={requestTarget}
-          onClose={() => setRequestTarget(null)}
-          onSubmit={(tid) => requestMutation.mutateAsync(tid)}
-        />
-      )}
+      <Card padded={false}>
+        <div className="border-b border-slate-100 px-5 py-3.5"><h3 className="text-[15px] font-semibold text-slate-900">My requests</h3></div>
+        <Table rows={requests} empty={<EmptyState icon={Send} title="No requests yet" />}
+          columns={[
+            { key: 'template', label: 'Document', render: (r) => <span className="font-medium text-slate-900">{r.template?.name}</span> },
+            { key: 'date', label: 'Requested', render: (r) => dateLabel(r.created_at) },
+            { key: 'status', label: 'Status', render: (r) => <StatusPill status={r.status} /> },
+          ]} />
+      </Card>
     </div>
   )
 }
 
-function IssuedCertsTab({ employeeId }) {
+function IssuedTab({ employeeId }) {
   const { data: certs = [], isLoading } = useQuery({
     queryKey: ['issued-certificates', employeeId],
     queryFn: () => certificateApi.listIssued({ employee_id: employeeId }).then((r) => r.data?.data ?? []),
     enabled: !!employeeId,
   })
-
-  if (isLoading) return <div className="flex justify-center py-12"><Spinner className="h-8 w-8" /></div>
-
-  if (!certs.length) return (
-    <div className="rounded-2xl border border-dashed py-16 text-center">
-      <FileText size={32} className="mx-auto text-slate-300 mb-3" />
-      <p className="text-sm text-slate-400">No issued certificates yet.</p>
-    </div>
+  if (isLoading) return loading
+  return (
+    <Card padded={false}>
+      <Table rows={certs} empty={<EmptyState icon={Award} title="No documents issued to you yet" />}
+        columns={[
+          { key: 'name', label: 'Document', render: (c) => <span className="font-medium text-slate-900">{c.request?.template?.name ?? 'Certificate'}</span> },
+          { key: 'number', label: 'Number', render: (c) => <span className="font-mono text-xs text-slate-600">{c.certificate_number}</span> },
+          { key: 'issued', label: 'Issued', render: (c) => dateLabel(c.issued_at) },
+          { key: 'actions', label: '', align: 'right', render: (c) => (
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="secondary" icon={Eye} onClick={() => openIssuedCertificatePdf(c.id).catch(() => {})}>View</Button>
+              <Button size="sm" icon={Download} onClick={() => openIssuedCertificatePdf(c.id, { download: true, filename: `${c.certificate_number}.pdf` }).catch(() => {})}>Download</Button>
+            </div>
+          ) },
+        ]} />
+    </Card>
   )
+}
+
+/** Letter templates (HR), requests and the documents issued to me. */
+export default function CertificatesPage() {
+  const qc = useQueryClient()
+  const user = useAuthStore((s) => s.user)
+  const { can } = useRole()
+  const isHR = can('certificates.manage')
+  const [tab, setTab] = useState(isHR ? 'templates' : 'requests')
+  const [requestTarget, setRequestTarget] = useState(null)
+  const [flash, notify] = useFlash()
+
+  const { data: templates = [], isLoading } = useQuery({
+    queryKey: ['certificate-templates'],
+    queryFn: () => certificateApi.listTemplates().then((r) => r.data?.data ?? []),
+  })
+  const request = useMutation({
+    mutationFn: (templateId) => certificateApi.submitRequest({ template_id: templateId }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cert-requests'] }); setRequestTarget(null); notify('Request sent to HR.') },
+    onError: () => notify('Couldn’t send the request.', 'error'),
+  })
+
+  const tabs = [
+    ...(isHR ? [{ key: 'templates', label: 'Templates', count: templates.length }, { key: 'pending', label: 'Pending requests' }] : []),
+    ...(user?.employee_id ? [{ key: 'requests', label: 'Request a document' }, { key: 'issued', label: 'My documents' }] : []),
+  ]
 
   return (
-    <div className="space-y-3">
-      {certs.map((cert) => (
-        <div key={cert.id} className="rounded-2xl border bg-white p-5 shadow-sm flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">{cert.request?.template?.name ?? 'Certificate'}</p>
-            <p className="text-xs font-mono text-slate-400 mt-0.5">{cert.certificate_number}</p>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Issued {cert.issued_at ? new Date(cert.issued_at).toLocaleDateString() : '—'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => openIssuedCertificatePdf(cert.id).catch(() => {})}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-              View PDF
-            </button>
-            <button onClick={() => openIssuedCertificatePdf(cert.id, { download: true, filename: `${cert.certificate_number}.pdf` }).catch(() => {})}
-              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm shadow-blue-500/20">
-              Download
-            </button>
-          </div>
-        </div>
-      ))}
+    <div>
+      <PageHeader icon={Award} title="Letters & certificates" subtitle="Joining, experience, relieving and custom letters — verifiable with a QR code."
+        actions={isHR && <Link to="/certificates/templates/new"><Button icon={Plus}>New template</Button></Link>} />
+      {flash}
+      <Tabs className="mb-5" value={tab} onChange={setTab} tabs={tabs} />
+
+      {tab === 'templates' && isHR && <TemplatesTab templates={templates} isLoading={isLoading} notify={notify} onRequest={setRequestTarget} />}
+      {tab === 'pending' && isHR && <PendingTab notify={notify} />}
+      {tab === 'requests' && <MyRequestsTab templates={templates} onRequest={setRequestTarget} />}
+      {tab === 'issued' && <IssuedTab employeeId={user?.employee_id} />}
+
+      {requestTarget && (
+        <Modal size="sm" title={`Request ${requestTarget.name}`} onClose={() => setRequestTarget(null)}
+          footer={<><Button variant="secondary" onClick={() => setRequestTarget(null)}>Cancel</Button><Button icon={Send} loading={request.isPending} onClick={() => request.mutate(requestTarget.id)}>Send request</Button></>}>
+          <p className="text-[13px] text-slate-600">HR reviews the request and issues the {typeLabel(requestTarget.type).toLowerCase()} letter. You’ll find it under <strong>My documents</strong> once issued.</p>
+        </Modal>
+      )}
     </div>
   )
 }

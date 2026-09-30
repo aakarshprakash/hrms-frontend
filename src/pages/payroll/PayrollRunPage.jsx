@@ -1,262 +1,138 @@
-import { useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Play, Download, CheckCircle, Clock, AlertCircle, RefreshCw, Settings2, Trash2, CalendarPlus, Wallet } from 'lucide-react'
+import { CalendarPlus, Wallet, ChevronRight } from 'lucide-react'
 import { payrollApi } from '@/lib/api/payroll'
-import { useAuthStore } from '@/store/authStore'
+import { branchApi } from '@/lib/api/departments'
+import { useRole } from '@/hooks/useRole'
+import { money, monthLabel, MONTHS } from '@/lib/format'
 import { Spinner } from '@/components/ui/Spinner'
-import ConfirmDialog from '@/components/ui/ConfirmDialog'
-import { cn } from '@/lib/utils'
+import { PageHeader, Card, Button, Modal, Field, Select, Toggle, StatusPill, EmptyState, ErrorBanner } from '@/components/ui/kit'
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+export default function PayrollRunPage() {
+  const navigate = useNavigate()
+  const { can } = useRole()
+  const [year, setYear] = useState(new Date().getFullYear())
+  const [creating, setCreating] = useState(false)
 
-const STATUS_CONFIG = {
-  draft: { icon: Clock, color: 'text-slate-500', bg: 'bg-slate-50', label: 'Draft' },
-  processing: { icon: RefreshCw, color: 'text-amber-600', bg: 'bg-amber-50', label: 'Processing…' },
-  completed: { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', label: 'Completed' },
-}
-
-function StatusBadge({ status }) {
-  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.draft
-  const Icon = cfg.icon
-  return (
-    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold', cfg.color, cfg.bg)}>
-      <Icon size={12} className={status === 'processing' ? 'animate-spin' : ''} />
-      {cfg.label}
-    </span>
-  )
-}
-
-function RunCard({ run, onTrigger, onExport, onManage, onDelete }) {
-  const [polling, setPolling] = useState(run.status === 'processing')
-
-  const { data: status } = useQuery({
-    queryKey: ['payroll-run-status', run.id],
-    queryFn: () => payrollApi.runStatus(run.id).then((r) => r.data?.data ?? r.data),
-    enabled: polling,
-    refetchInterval: polling ? 3000 : false,
+  const { data: runs = [], isLoading } = useQuery({
+    queryKey: ['payroll-runs', year],
+    queryFn: () => payrollApi.listRuns({ year }).then((r) => r.data?.data ?? []),
   })
 
-  useEffect(() => {
-    if (status?.status && status.status !== 'processing') setPolling(false)
-  }, [status?.status])
+  // One group per month, one row per branch.
+  const months = useMemo(() => {
+    const groups = new Map()
+    for (const run of runs) {
+      const key = `${run.year}-${String(run.month).padStart(2, '0')}`
+      if (!groups.has(key)) groups.set(key, { key, month: run.month, year: run.year, runs: [] })
+      groups.get(key).runs.push(run)
+    }
+    return [...groups.values()].sort((a, b) => b.key.localeCompare(a.key))
+  }, [runs])
 
-  const currentStatus = status?.status ?? run.status
-  const payslipsCount = status?.payslips_count ?? run.payslips_count ?? 0
+  const years = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i)
 
   return (
-    <div className="rounded-2xl border bg-white shadow-sm p-5 flex items-center justify-between gap-4 flex-wrap hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-4">
-        <div className="hidden sm:flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-blue-50 border border-blue-100 text-blue-700">
-          <span className="text-[10px] font-bold uppercase leading-none">{MONTHS[run.month - 1].slice(0, 3)}</span>
-          <span className="text-base font-bold leading-tight">{run.year}</span>
+    <div>
+      <PageHeader icon={Wallet} title="Payroll runs"
+        subtitle="Process, review, finalize and pay — one run per branch per month."
+        actions={<>
+          <Select className="w-auto" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            {years.map((y) => <option key={y} value={y}>{y}</option>)}
+          </Select>
+          {can('payroll.manage') && <Button icon={CalendarPlus} onClick={() => setCreating(true)}>New payroll</Button>}
+        </>} />
+
+      {isLoading ? <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div> : months.length === 0 ? (
+        <Card><EmptyState icon={Wallet} title={`No payroll runs in ${year}`} description="Open a month to start preparing salaries."
+          action={can('payroll.manage') && <Button icon={CalendarPlus} onClick={() => setCreating(true)}>New payroll</Button>} /></Card>
+      ) : (
+        <div className="space-y-4">
+          {months.map((group) => {
+            const net = group.runs.reduce((sum, r) => sum + Number(r.totals?.net ?? 0), 0)
+            return (
+              <Card key={group.key} padded={false}>
+                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 flex-col items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-700">
+                      <span className="text-[10px] font-bold uppercase leading-none">{MONTHS[group.month - 1].slice(0, 3)}</span>
+                      <span className="text-sm font-bold leading-tight">{group.year}</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900">{monthLabel(group.month, group.year)}</p>
+                      <p className="text-xs text-slate-500">{group.runs.length} branch{group.runs.length === 1 ? '' : 'es'}{net > 0 ? ` · net pay ${money(net)}` : ''}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {group.runs.map((run) => (
+                    <button key={run.id} onClick={() => navigate(`/payroll/runs/${run.id}`)}
+                      className="flex w-full items-center gap-4 px-5 py-3 text-left transition-colors hover:bg-slate-50">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-slate-800">{run.branch?.name ?? `Branch #${run.branch_id}`}</p>
+                        <p className="text-xs text-slate-400">
+                          {run.payslips_count} payslip{run.payslips_count === 1 ? '' : 's'}
+                          {run.totals?.warnings ? ` · ${run.totals.warnings} warning(s)` : ''}
+                        </p>
+                      </div>
+                      <span className="hidden w-32 text-right text-sm font-medium text-slate-700 sm:block">{run.totals?.net ? money(run.totals.net) : '—'}</span>
+                      <StatusPill status={run.status} className="w-24 justify-center" />
+                      <ChevronRight size={16} className="text-slate-300" />
+                    </button>
+                  ))}
+                </div>
+              </Card>
+            )
+          })}
         </div>
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <p className="text-base font-semibold text-slate-900">
-              {MONTHS[run.month - 1]} {run.year}
-            </p>
-            <StatusBadge status={currentStatus} />
-          </div>
-          <p className="text-xs text-slate-500">
-            {payslipsCount} payslip{payslipsCount !== 1 ? 's' : ''} generated
-            {run.run_at ? ` · Run at ${new Date(run.run_at).toLocaleString()}` : ''}
-          </p>
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <button onClick={() => onManage(run.id)}
-          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-          <Settings2 size={14} /> {currentStatus === 'draft' ? 'Manage' : 'View'}
-        </button>
-        {currentStatus === 'draft' && (
-          <button onClick={() => { onTrigger(run.id); setPolling(true) }}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm shadow-blue-500/20">
-            <Play size={14} /> Run Payroll
-          </button>
-        )}
-        {currentStatus === 'completed' && (
-          <button onClick={() => onExport(run.id)}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-            <Download size={14} /> Bank Export
-          </button>
-        )}
-        {currentStatus !== 'processing' && (
-          <button onClick={() => onDelete(run)} title="Delete this payroll run"
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600">
-            <Trash2 size={14} />
-          </button>
-        )}
-      </div>
+      )}
+
+      {creating && <NewRunModal onClose={() => setCreating(false)} onCreated={(run) => navigate(Array.isArray(run) ? '/payroll/runs' : `/payroll/runs/${run.id}`)} />}
     </div>
   )
 }
 
-export default function PayrollRunPage() {
+function NewRunModal({ onClose, onCreated }) {
   const qc = useQueryClient()
-  const navigate = useNavigate()
-  const activeBranch = useAuthStore((s) => s.activeBranch)
-  const [toast, setToast] = useState(null)
-  const [runToDelete, setRunToDelete] = useState(null)
-
   const now = new Date()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
+  const [allBranches, setAllBranches] = useState(true)
+  const [branchId, setBranchId] = useState('')
 
-  function notify(msg, type = 'success') {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 5000)
-  }
+  const { data: branches = [] } = useQuery({ queryKey: ['branches'], queryFn: () => branchApi.list().then((r) => r.data?.data ?? []) })
 
-  const { data: runs = [], isLoading } = useQuery({
-    queryKey: ['payroll-runs', activeBranch?.id],
-    queryFn: () => payrollApi.listRuns({
-      ...(activeBranch ? { branch_id: activeBranch.id } : {}),
-    }).then((r) => r.data?.data ?? []),
-  })
-
-  const createMutation = useMutation({
-    mutationFn: () => payrollApi.createRun({
-      branch_id: activeBranch?.id,
-      month,
-      year,
-    }),
+  const create = useMutation({
+    mutationFn: () => payrollApi.createRun({ month, year, ...(allBranches ? { all_branches: true } : { branch_id: branchId }) }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['payroll-runs'] })
-      // Jump straight to the new draft's preview rather than leaving HR on
-      // the list -- that preview is the whole point of creating a draft
-      // first instead of running payroll immediately.
-      const newRunId = res.data?.data?.id
-      if (newRunId) navigate(`/payroll/runs/${newRunId}`)
+      onCreated(res.data?.data)
     },
-    onError: (e) => notify(e.response?.data?.message ?? 'Failed to create run.', 'error'),
   })
-
-  const triggerMutation = useMutation({
-    mutationFn: (id) => payrollApi.triggerRun(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['payroll-runs'] }); notify('Payroll processing started…') },
-    onError: () => notify('Failed to trigger payroll.', 'error'),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id) => payrollApi.deleteRun(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['payroll-runs'] })
-      notify('Payroll run deleted.')
-      setRunToDelete(null)
-    },
-    onError: (e) => notify(e.response?.data?.message ?? 'Failed to delete run.', 'error'),
-  })
-
-  async function handleExport(runId) {
-    try {
-      const res = await payrollApi.bankExport(runId)
-      const url = URL.createObjectURL(new Blob([res.data]))
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `bank-export-${runId}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch {
-      notify('Export failed.', 'error')
-    }
-  }
-
-  const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i)
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Payroll Runs</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Create a draft, review the salary preview, then run payroll to generate payslips.</p>
-      </div>
-
-      {toast && (
-        <div className={cn('rounded-xl px-4 py-3 text-sm font-medium flex items-start gap-2',
-          toast.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200')}>
-          {toast.type === 'error' ? <AlertCircle size={15} className="shrink-0 mt-0.5" /> : <CheckCircle size={15} className="shrink-0 mt-0.5" />}
-          {toast.msg}
+    <Modal size="sm" title="New payroll" subtitle="Opens the month as a draft; nothing is computed until you process it." onClose={onClose}
+      footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button loading={create.isPending} disabled={!allBranches && !branchId} onClick={() => create.mutate()}>Create</Button></>}>
+      <div className="space-y-4">
+        <ErrorBanner error={create.error} />
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Month"><Select value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+            {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</Select></Field>
+          <Field label="Year"><Select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y} value={y}>{y}</option>)}</Select></Field>
         </div>
-      )}
-
-      {/* Create new run */}
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-            <CalendarPlus size={18} />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-slate-900">Create New Payroll Run</h2>
-            <p className="text-xs text-slate-500">You'll land on a preview before anything is finalized.</p>
-          </div>
-        </div>
-        <div className="flex items-end gap-4 flex-wrap">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Month</label>
-            <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:bg-white focus:border-blue-500">
-              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Year</label>
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:bg-white focus:border-blue-500">
-              {years.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-          </div>
-          <button onClick={() => createMutation.mutate()}
-            disabled={createMutation.isPending || !activeBranch}
-            className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm shadow-blue-500/20 disabled:opacity-60">
-            {createMutation.isPending && <Spinner className="h-4 w-4 border-white border-t-transparent" />}
-            Create Draft
-          </button>
-          {!activeBranch && <p className="text-xs text-amber-600">Select a branch first</p>}
-        </div>
-      </div>
-
-      {/* Existing runs */}
-      <div>
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
-          <Wallet size={15} className="text-slate-400" /> All Runs
-        </h2>
-        {isLoading ? (
-          <div className="flex justify-center py-12"><Spinner className="h-8 w-8" /></div>
-        ) : runs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed py-12 text-center text-sm text-slate-400">
-            No payroll runs yet. Create one above.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {runs.map((run) => (
-              <RunCard
-                key={run.id}
-                run={run}
-                onTrigger={(id) => triggerMutation.mutate(id)}
-                onExport={handleExport}
-                onManage={(id) => navigate(`/payroll/runs/${id}`)}
-                onDelete={setRunToDelete}
-              />
-            ))}
-          </div>
+        {branches.length > 1 && <Toggle checked={allBranches} onChange={setAllBranches} label="All my branches" description="One run per branch; months already opened are skipped." />}
+        {branches.length > 1 && !allBranches && (
+          <Field label="Branch" required>
+            <Select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+              <option value="">Select a branch…</option>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </Select>
+          </Field>
         )}
       </div>
-
-      {runToDelete && (
-        <ConfirmDialog
-          title={runToDelete.status === 'completed' ? 'Delete completed payroll run?' : 'Delete draft payroll run?'}
-          message={
-            runToDelete.status === 'completed'
-              ? `This will permanently delete ${MONTHS[runToDelete.month - 1]} ${runToDelete.year} for this branch, including all ${runToDelete.payslips_count ?? ''} generated payslips and their PDFs. This cannot be undone.`
-              : `This will permanently delete the ${MONTHS[runToDelete.month - 1]} ${runToDelete.year} draft. This cannot be undone.`
-          }
-          confirmLabel={deleteMutation.isPending ? 'Deleting…' : 'Delete'}
-          danger
-          isPending={deleteMutation.isPending}
-          onCancel={() => setRunToDelete(null)}
-          onConfirm={() => deleteMutation.mutate(runToDelete.id)}
-        />
-      )}
-    </div>
+    </Modal>
   )
 }

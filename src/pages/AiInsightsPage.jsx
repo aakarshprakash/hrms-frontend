@@ -1,173 +1,151 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import {
-  Sparkles, AlertTriangle, AlertCircle, Info, PartyPopper, RefreshCw, ArrowRight,
-} from 'lucide-react'
-import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
-  AreaChart, Area, PieChart, Pie, Cell, Legend,
-} from 'recharts'
+import { Sparkles, AlertTriangle, AlertCircle, Info, PartyPopper, RefreshCw, ArrowRight, Building2, Network, TrendingUp, Briefcase } from 'lucide-react'
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area, Legend } from 'recharts'
 import { aiApi } from '@/lib/api/users'
 import { useAuthStore } from '@/store/authStore'
+import { SERIES, GRID, TICK, foldOther } from '@/lib/chart'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn } from '@/lib/utils'
+import { PageHeader, Card, CardHeader, Button, EmptyState, ErrorBanner, ChartTooltip } from '@/components/ui/kit'
 
 const SEVERITY = {
-  critical: { icon: AlertCircle, chip: 'bg-red-50 border-red-200', iconColor: 'text-red-500', label: 'Critical' },
-  warning: { icon: AlertTriangle, chip: 'bg-amber-50 border-amber-200', iconColor: 'text-amber-500', label: 'Warning' },
-  info: { icon: Info, chip: 'bg-blue-50 border-blue-200', iconColor: 'text-blue-500', label: 'Info' },
-  positive: { icon: PartyPopper, chip: 'bg-emerald-50 border-emerald-200', iconColor: 'text-emerald-500', label: 'Good news' },
+  critical: { icon: AlertCircle, tile: 'bg-rose-50 text-rose-600 ring-rose-200', label: 'Critical' },
+  warning: { icon: AlertTriangle, tile: 'bg-amber-50 text-amber-600 ring-amber-200', label: 'Needs attention' },
+  info: { icon: Info, tile: 'bg-blue-50 text-blue-600 ring-blue-200', label: 'For your information' },
+  positive: { icon: PartyPopper, tile: 'bg-emerald-50 text-emerald-600 ring-emerald-200', label: 'Good news' },
+}
+const ORDER = ['critical', 'warning', 'info', 'positive']
+const shortDay = (d) => new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+const legendInk = (v) => <span className="text-slate-600">{v}</span>
+
+/** Labelled share bars — for categories, easier to read than a pie. */
+function ShareList({ items }) {
+  const rows = foldOther(items.map((i) => ({ ...i, label: String(i.label ?? '').replace(/_/g, ' ') })))
+  const total = rows.reduce((n, r) => n + r.value, 0)
+  if (!rows.length) return <EmptyState title="No data yet" />
+  return (
+    <ul className="space-y-3 p-5">
+      {rows.map((r, i) => (
+        <li key={r.label}>
+          <div className="mb-1 flex items-center justify-between text-[13px]">
+            <span className="font-medium capitalize text-slate-700">{r.label}</span>
+            <span className="tabular-nums text-slate-900">{r.value} <span className="text-slate-400">· {total ? Math.round((r.value / total) * 100) : 0}%</span></span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full" style={{ width: `${total ? (r.value / total) * 100 : 0}%`, backgroundColor: SERIES[i] }} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
 }
 
-const PIE_COLORS = ['#2563eb', '#0d9488', '#d97706', '#7c3aed', '#dc2626', '#475569']
-
+/** Findings from the workforce data, most urgent first, plus the charts behind them. */
 export default function AiInsightsPage() {
   const activeBranchId = useAuthStore((s) => s.activeBranchId)
-
-  const { data, isLoading, isError, refetch, isFetching, dataUpdatedAt } = useQuery({
+  const { data, isLoading, error, refetch, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['ai-insights', activeBranchId],
     queryFn: () => aiApi.insights({ branch_id: activeBranchId || undefined }).then((r) => r.data?.data),
     staleTime: 1000 * 60 * 5,
   })
 
-  const insights = data?.insights ?? []
-  const analytics = data?.analytics ?? {}
+  const insights = [...(data?.insights ?? [])].sort((a, b) => ORDER.indexOf(a.severity) - ORDER.indexOf(b.severity))
+  const a = data?.analytics ?? {}
+  const counts = ORDER.map((k) => [k, insights.filter((i) => i.severity === k).length]).filter(([, n]) => n > 0)
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-gradient-to-br from-violet-600 to-blue-600 p-1.5 text-white">
-              <Sparkles size={16} />
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900">AI Insights</h1>
-          </div>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Automatic analysis of your workforce data — refreshed on demand.
-          </p>
-        </div>
-        <button onClick={() => refetch()} disabled={isFetching}
-          className="flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-          <RefreshCw size={14} className={cn(isFetching && 'animate-spin')} />
-          {dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Refresh'}
-        </button>
-      </div>
+    <div>
+      <PageHeader icon={Sparkles} title="AI insights" subtitle="Patterns spotted in attendance, leave and people data — most urgent first."
+        actions={<Button variant="secondary" icon={RefreshCw} loading={isFetching} onClick={() => refetch()}>
+          {dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : 'Refresh'}
+        </Button>} />
 
-      {isLoading && <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div>}
-      {isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
-          Could not load insights. You may not have permission to view this page.
-        </div>
-      )}
-
-      {!isLoading && !isError && (
-        <>
-          {/* Insight feed */}
-          <div className="grid gap-3 lg:grid-cols-2">
-            {insights.length === 0 && (
-              <div className="lg:col-span-2 rounded-xl border border-dashed p-8 text-center text-sm text-slate-400">
-                All clear — no findings right now. Insights appear as attendance, leave and profile data accumulate.
-              </div>
+      <ErrorBanner error={error} className="mb-4" message={error ? 'Couldn’t load insights — you may not have access to this page.' : undefined} />
+      {isLoading ? <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div> : !error && (
+        <div className="space-y-6">
+          <Card padded={false}>
+            <CardHeader title="Findings" icon={Sparkles}
+              subtitle={insights.length ? counts.map(([k, n]) => `${n} ${SEVERITY[k].label.toLowerCase()}`).join(' · ') : 'Nothing needs attention'} />
+            {insights.length === 0 ? (
+              <EmptyState icon={PartyPopper} title="All clear" description="Insights appear as attendance, leave and profile data build up." />
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {insights.map((ins, i) => {
+                  const meta = SEVERITY[ins.severity] ?? SEVERITY.info
+                  const Icon = meta.icon
+                  return (
+                    <li key={i} className="flex items-start gap-3 px-5 py-3.5">
+                      <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset', meta.tile)}><Icon size={16} /></div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-semibold text-slate-900">{ins.title}</p>
+                        <p className="mt-0.5 text-[13px] text-slate-600">{ins.detail}</p>
+                        <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-slate-400">{meta.label}</p>
+                      </div>
+                      {ins.link && (
+                        <Link to={ins.link} className="inline-flex shrink-0 items-center gap-1 self-center rounded-lg px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50">
+                          View <ArrowRight size={13} />
+                        </Link>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
             )}
-            {insights.map((ins, i) => {
-              const meta = SEVERITY[ins.severity] ?? SEVERITY.info
-              const Icon = meta.icon
-              return (
-                <div key={i} className={cn('flex gap-3 rounded-xl border p-4', meta.chip)}>
-                  <Icon size={18} className={cn('mt-0.5 shrink-0', meta.iconColor)} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-slate-900">{ins.title}</p>
-                    <p className="mt-0.5 text-xs text-slate-600">{ins.detail}</p>
-                  </div>
-                  {ins.link && (
-                    <Link to={ins.link} className="self-center rounded-md p-1.5 text-slate-400 hover:bg-white/70 hover:text-blue-600">
-                      <ArrowRight size={15} />
-                    </Link>
-                  )}
-                </div>
-              )
-            })}
+          </Card>
+
+          <div className="grid items-start gap-6 xl:grid-cols-2">
+            <Card padded={false}>
+              <CardHeader title="Attendance trend" icon={TrendingUp} subtitle="Last 14 days" />
+              <div className="h-[260px] px-2 pb-3 pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={a.attendance_trend ?? []} margin={{ top: 4, right: 16, bottom: 0, left: -16 }}>
+                    <defs>
+                      <linearGradient id="gPresent" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.2} />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke={GRID} vertical={false} />
+                    <XAxis dataKey="day" tick={TICK} axisLine={false} tickLine={false} tickFormatter={shortDay} minTickGap={16} />
+                    <YAxis allowDecimals={false} tick={TICK} axisLine={false} tickLine={false} />
+                    <Tooltip content={<ChartTooltip labelFormat={shortDay} />} cursor={{ stroke: '#cbd5e1', strokeDasharray: 4 }} />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} formatter={legendInk} />
+                    <Area type="monotone" dataKey="present" name="Present" stroke="#10b981" fill="url(#gPresent)" strokeWidth={2} isAnimationActive={false} />
+                    <Area type="monotone" dataKey="late" name="Late" stroke="#f59e0b" fill="none" strokeWidth={2} isAnimationActive={false} />
+                    <Area type="monotone" dataKey="absent" name="Absent" stroke="#e11d48" fill="none" strokeWidth={2} isAnimationActive={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+
+            <Card padded={false}>
+              <CardHeader title="Headcount by branch" icon={Building2} subtitle="Active employees" />
+              <div className="h-[260px] px-2 pb-3 pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={a.headcount_by_branch ?? []} margin={{ top: 4, right: 16, bottom: 0, left: -16 }}>
+                    <CartesianGrid stroke={GRID} vertical={false} />
+                    <XAxis dataKey="label" tick={TICK} axisLine={false} tickLine={false} interval={0} tickFormatter={(l) => (l?.length > 16 ? `${l.slice(0, 15)}…` : l)} />
+                    <YAxis allowDecimals={false} tick={TICK} axisLine={false} tickLine={false} />
+                    <Tooltip content={<ChartTooltip />} cursor={{ fill: '#f8fafc' }} />
+                    <Bar dataKey="value" name="Employees" fill={SERIES[0]} radius={[4, 4, 0, 0]} maxBarSize={44} isAnimationActive={false} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+
+            <Card padded={false}>
+              <CardHeader title="Headcount by department" icon={Network} subtitle="Where your people are" />
+              <ShareList items={a.headcount_by_department ?? []} />
+            </Card>
+
+            <Card padded={false}>
+              <CardHeader title="Employment type" icon={Briefcase} subtitle="Full-time, contract and interns" />
+              <ShareList items={a.headcount_by_type ?? []} />
+            </Card>
           </div>
-
-          {/* Analytics */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <ChartCard title="Headcount by Branch" subtitle="Active employees per branch">
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={analytics.headcount_by_branch ?? []} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={{ fill: '#f1f5f9' }} />
-                  <Bar dataKey="value" name="Employees" fill="#2563eb" radius={[6, 6, 0, 0]} maxBarSize={48} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
-            <ChartCard title="Headcount by Department" subtitle="Where your people are">
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={analytics.headcount_by_department ?? []} layout="vertical" margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="label" width={110} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={{ fill: '#f1f5f9' }} />
-                  <Bar dataKey="value" name="Employees" fill="#0d9488" radius={[0, 6, 6, 0]} maxBarSize={22} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
-            <ChartCard title="Attendance Trend" subtitle="Last 14 days">
-              <ResponsiveContainer width="100%" height={240}>
-                <AreaChart data={analytics.attendance_trend ?? []} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
-                  <defs>
-                    <linearGradient id="gPresent" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#16a34a" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#16a34a" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false}
-                    tickFormatter={(d) => d?.slice(5)} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Area type="monotone" dataKey="present" name="Present" stroke="#16a34a" fill="url(#gPresent)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="late" name="Late" stroke="#d97706" fill="none" strokeWidth={2} />
-                  <Area type="monotone" dataKey="absent" name="Absent" stroke="#dc2626" fill="none" strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartCard>
-
-            <ChartCard title="Employment Type Mix" subtitle="Full-time vs contract vs interns">
-              <ResponsiveContainer width="100%" height={240}>
-                <PieChart>
-                  <Pie
-                    data={(analytics.headcount_by_type ?? []).map((d) => ({ ...d, label: d.label?.replace(/_/g, ' ') }))}
-                    dataKey="value" nameKey="label" innerRadius={55} outerRadius={85} paddingAngle={3}>
-                    {(analytics.headcount_by_type ?? []).map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 12, textTransform: 'capitalize' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-        </>
+        </div>
       )}
-    </div>
-  )
-}
-
-function ChartCard({ title, subtitle, children }) {
-  return (
-    <div className="rounded-xl border bg-white p-5 shadow-sm">
-      <div className="mb-3">
-        <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-        {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
-      </div>
-      {children}
     </div>
   )
 }

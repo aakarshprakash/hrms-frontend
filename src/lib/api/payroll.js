@@ -12,6 +12,7 @@ export const salaryApi = {
   deleteStructure: (id) => api.delete(`/salary-structures/${id}`),
 
   listStatutory: (params) => api.get('/statutory-rules', { params }),
+  statutoryDefaults: (params) => api.get('/statutory-rules/defaults', { params }),
   createStatutory: (data) => api.post('/statutory-rules', data),
   updateStatutory: (id, data) => api.put(`/statutory-rules/${id}`, data),
   deleteStatutory: (id) => api.delete(`/statutory-rules/${id}`),
@@ -23,6 +24,9 @@ export const payrollApi = {
   getRun: (id) => api.get(`/payroll-runs/${id}`),
   deleteRun: (id) => api.delete(`/payroll-runs/${id}`),
   triggerRun: (id) => api.post(`/payroll-runs/${id}/run`),
+  finalizeRun: (id) => api.post(`/payroll-runs/${id}/finalize`),
+  reopenRun: (id) => api.post(`/payroll-runs/${id}/reopen`),
+  markPaid: (id, data) => api.post(`/payroll-runs/${id}/mark-paid`, data),
   runStatus: (id) => api.get(`/payroll-runs/${id}/status`),
   previewRun: (id) => api.get(`/payroll-runs/${id}/preview`),
   bankExport: (id) => api.get(`/payroll-runs/${id}/bank-export`, { responseType: 'blob' }),
@@ -39,6 +43,16 @@ export const payrollApi = {
   // API auth is a Bearer token, not a cookie, so a plain <a href> to this
   // path can't authenticate — fetch it as a blob instead (see openPayslipPdf).
   fetchPayslipPdf: (id) => api.get(`/payslips/${id}/pdf`, { responseType: 'blob' }),
+}
+
+/** Browser download of a blob response. */
+export function saveBlob(data, filename, type) {
+  const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 30000)
 }
 
 export async function openPayslipPdf(id, { download } = {}) {

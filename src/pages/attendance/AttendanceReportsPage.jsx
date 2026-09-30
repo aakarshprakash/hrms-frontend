@@ -1,294 +1,153 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import {
-  BarChart3, Download, Grid3x3, AlertTriangle, Users,
-  Clock, XCircle, CalendarOff,
-} from 'lucide-react'
+import { BarChart3, Download, Users, Clock, XCircle, CalendarOff, ChevronLeft, ChevronRight } from 'lucide-react'
 import { attendanceApi } from '@/lib/api/attendance'
 import { branchApi, departmentApi } from '@/lib/api/departments'
 import { employeeApi } from '@/lib/api/employees'
 import { useAuthStore } from '@/store/authStore'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn } from '@/lib/utils'
+import { PageHeader, Card, Button, Select, Tabs, Table, StatusPill, StatCard, EmptyState, ErrorBanner } from '@/components/ui/kit'
+import ReportNav from '@/components/attendance/ReportNav'
 
-const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const dash = (v, suffix = '') => (v ? `${v}${suffix}` : <span className="text-slate-300">—</span>)
+const day = (d) => new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
 
-const STATUS_STYLES = {
-  present: 'text-emerald-600',
-  late: 'text-amber-600',
-  half_day: 'text-blue-600',
-  absent: 'text-rose-600',
-  on_leave: 'text-purple-600',
-}
-
-function statusLabel(status) {
-  return status ? status.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '—'
-}
-
-function KpiCard({ icon: Icon, label, value, color }) {
+function Person({ e }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', color)}>
-          <Icon size={16} className="text-white" />
-        </div>
-        <div>
-          <p className="text-lg font-extrabold text-slate-900">{value}</p>
-          <p className="text-[11px] text-slate-500">{label}</p>
-        </div>
-      </div>
+    <div className="min-w-0">
+      <p className="truncate font-medium text-slate-900">{e.name}</p>
+      <p className="text-xs text-slate-500">{e.employee_code}{e.branch ? ` · ${e.branch}` : ''}</p>
     </div>
   )
 }
 
+/** Monthly attendance per employee, or day by day, with CSV export. */
 export default function AttendanceReportsPage() {
   const activeBranchId = useAuthStore((s) => s.activeBranchId)
   const now = new Date()
-  const [month, setMonth] = useState(now.getMonth() + 1)
-  const [year, setYear] = useState(now.getFullYear())
+  const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() + 1 })
   const [branchId, setBranchId] = useState(activeBranchId ?? '')
   const [deptId, setDeptId] = useState('')
   const [employeeId, setEmployeeId] = useState('')
   const [tab, setTab] = useState('summary')
   const [exporting, setExporting] = useState(false)
+  const { year, month } = cursor
+  const shift = (n) => setCursor(({ year: y, month: m }) => { const d = new Date(y, m - 1 + n, 1); return { year: d.getFullYear(), month: d.getMonth() + 1 } })
+  const filters = { month, year, branch_id: branchId || undefined, department_id: deptId || undefined }
 
-  const { data: branchesData } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => branchApi.list().then((r) => r.data),
-  })
-
-  const { data: deptsData } = useQuery({
+  const { data: branches = [] } = useQuery({ queryKey: ['branches'], queryFn: () => branchApi.list().then((r) => r.data?.data ?? []) })
+  const { data: depts = [] } = useQuery({
     queryKey: ['departments', branchId],
-    queryFn: () => departmentApi.list({ branch_id: branchId || undefined }).then((r) => r.data?.data ?? r.data ?? []),
+    queryFn: () => departmentApi.list({ branch_id: branchId || undefined }).then((r) => r.data?.data ?? []),
   })
-
-  const { data: employeesData } = useQuery({
+  const { data: employees = [] } = useQuery({
     queryKey: ['employees-lite', branchId],
     queryFn: () => employeeApi.list({ branch_id: branchId || undefined, status: 'active', per_page: 200 }).then((r) => r.data?.data ?? []),
     enabled: tab === 'daily',
   })
-
-  const { data: summaryRows, isLoading: summaryLoading, isError: summaryError } = useQuery({
-    queryKey: ['attendance-report-summary', month, year, branchId, deptId],
-    queryFn: () => attendanceApi.reportSummary({
-      month, year, branch_id: branchId || undefined, department_id: deptId || undefined,
-    }).then((r) => r.data?.data ?? []),
+  const summary = useQuery({
+    queryKey: ['attendance-report-summary', filters],
+    queryFn: () => attendanceApi.reportSummary(filters).then((r) => r.data?.data ?? []),
     enabled: tab === 'summary',
   })
-
-  const { data: dailyRows, isLoading: dailyLoading, isError: dailyError } = useQuery({
-    queryKey: ['attendance-report-daily', month, year, branchId, deptId, employeeId],
-    queryFn: () => attendanceApi.reportDaily({
-      month, year, branch_id: branchId || undefined, department_id: deptId || undefined, employee_id: employeeId || undefined,
-    }).then((r) => r.data?.data ?? []),
+  const daily = useQuery({
+    queryKey: ['attendance-report-daily', filters, employeeId],
+    queryFn: () => attendanceApi.reportDaily({ ...filters, employee_id: employeeId || undefined }).then((r) => r.data?.data ?? []),
     enabled: tab === 'daily',
   })
+  const current = tab === 'summary' ? summary : daily
+  const rows = current.data ?? []
 
-  const rows = tab === 'summary' ? summaryRows : dailyRows
-  const isLoading = tab === 'summary' ? summaryLoading : dailyLoading
-  const isError = tab === 'summary' ? summaryError : dailyError
+  const totals = tab === 'summary'
+    ? rows.reduce((a, r) => ({ late: a.late + r.late_days, absent: a.absent + r.absent_days, leave: a.leave + r.leave_days }), { late: 0, absent: 0, leave: 0 })
+    : rows.reduce((a, r) => ({ late: a.late + (r.status === 'late'), absent: a.absent + (r.status === 'absent'), leave: a.leave + (r.status === 'on_leave') }), { late: 0, absent: 0, leave: 0 })
 
-  async function handleExport() {
+  async function exportCsv() {
     setExporting(true)
     try {
-      const filters = { month, year, branch_id: branchId || undefined, department_id: deptId || undefined }
       const res = tab === 'summary'
         ? await attendanceApi.reportSummaryExport(filters)
         : await attendanceApi.reportDailyExport({ ...filters, employee_id: employeeId || undefined })
       const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv' }))
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `attendance-${tab}-${year}-${String(month).padStart(2, '0')}.csv`
-      a.click()
+      Object.assign(document.createElement('a'), { href: url, download: `attendance-${tab}-${year}-${String(month).padStart(2, '0')}.csv` }).click()
       URL.revokeObjectURL(url)
     } finally {
       setExporting(false)
     }
   }
 
-  const totals = tab === 'summary'
-    ? (summaryRows ?? []).reduce((acc, r) => ({
-        present: acc.present + r.present_days,
-        late: acc.late + r.late_days,
-        absent: acc.absent + r.absent_days,
-        leave: acc.leave + r.leave_days,
-      }), { present: 0, late: 0, absent: 0, leave: 0 })
-    : (dailyRows ?? []).reduce((acc, r) => ({
-        present: acc.present + (r.status === 'present' ? 1 : 0),
-        late: acc.late + (r.status === 'late' ? 1 : 0),
-        absent: acc.absent + (r.status === 'absent' ? 1 : 0),
-        leave: acc.leave + (r.status === 'on_leave' ? 1 : 0),
-      }), { present: 0, late: 0, absent: 0, leave: 0 })
-
-  const field = 'rounded-xl border-0 bg-slate-100/80 px-3.5 py-2 text-sm text-slate-700 outline-none ring-1 ring-transparent focus:bg-white focus:ring-2 focus:ring-blue-500/60'
+  const monthName = new Date(year, month - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 text-white shadow-lg shadow-blue-600/20">
-            <BarChart3 size={20} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Attendance Reports</h1>
-            <p className="text-[13px] text-slate-500">
-              {tab === 'summary'
-                ? 'Monthly rollup of presence, lateness and leave, per employee.'
-                : 'Day-by-day check-in and check-out times, per employee.'}
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Link to="/attendance/muster-roll"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-            <Grid3x3 size={13} /> Muster Roll
-          </Link>
-          <Link to="/attendance/exceptions"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-            <AlertTriangle size={13} /> Exceptions
-          </Link>
-        </div>
+    <div>
+      <PageHeader icon={BarChart3} title="Attendance reports" subtitle="Summaries, the monthly register and anything that needs a second look."
+        actions={<Button variant="secondary" icon={Download} loading={exporting} disabled={!rows.length} onClick={exportCsv}>Export CSV</Button>} />
+      <ReportNav />
+
+      <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <StatCard label={tab === 'summary' ? 'Employees' : 'Day records'} value={rows.length} icon={Users} tone="blue" hint={monthName} />
+        <StatCard label="Late marks" value={totals.late} icon={Clock} tone="amber" />
+        <StatCard label="Absences" value={totals.absent} icon={XCircle} tone="red" />
+        <StatCard label="Leave days" value={totals.leave} icon={CalendarOff} tone="purple" />
       </div>
 
-      {/* Tabs */}
-      <div className="mb-4 inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-        <button onClick={() => setTab('summary')}
-          className={cn('rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-colors', tab === 'summary' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-50')}>
-          Summary
-        </button>
-        <button onClick={() => setTab('daily')}
-          className={cn('rounded-lg px-4 py-1.5 text-[13px] font-semibold transition-colors', tab === 'daily' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-50')}>
-          Daily
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="mb-5 flex flex-wrap items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-        <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className={field}>
-          {MONTH_NAMES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-        </select>
-        <select value={year} onChange={(e) => setYear(Number(e.target.value))} className={field}>
-          {Array.from({ length: 6 }, (_, i) => now.getFullYear() - 3 + i).map((y) => <option key={y} value={y}>{y}</option>)}
-        </select>
-        <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setDeptId(''); setEmployeeId('') }} className={field}>
-          <option value="">All Branches</option>
-          {(branchesData?.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </select>
-        <select value={deptId} onChange={(e) => setDeptId(e.target.value)} className={field}>
-          <option value="">All Departments</option>
-          {(Array.isArray(deptsData) ? deptsData : []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-        {tab === 'daily' && (
-          <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className={field}>
-            <option value="">All Employees</option>
-            {(employeesData ?? []).map((e) => <option key={e.id} value={e.id}>{e.full_name ?? `${e.first_name} ${e.last_name}`}</option>)}
-          </select>
-        )}
-        <button onClick={handleExport} disabled={exporting || !rows?.length}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-[13px] font-semibold text-white shadow-lg shadow-blue-600/25 hover:bg-blue-700 disabled:opacity-50">
-          <Download size={13} /> {exporting ? 'Exporting…' : 'Export CSV'}
-        </button>
-      </div>
-
-      {/* KPIs */}
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiCard icon={Users} label={tab === 'summary' ? 'Employees' : 'Records'} value={rows?.length ?? 0} color="bg-slate-600" />
-        <KpiCard icon={Clock} label="Late Marks" value={totals.late} color="bg-amber-500" />
-        <KpiCard icon={XCircle} label="Absences" value={totals.absent} color="bg-rose-500" />
-        <KpiCard icon={CalendarOff} label="Leave Days" value={totals.leave} color="bg-purple-500" />
-      </div>
-
-      {isLoading && <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div>}
-      {isError && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">
-          Failed to load the report. You may not have permission to view attendance reports.
-        </div>
-      )}
-
-      {!isLoading && !isError && tab === 'summary' && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                  <th className="px-4 py-3">Employee</th>
-                  <th className="px-4 py-3">Department</th>
-                  <th className="px-4 py-3 text-center">Present</th>
-                  <th className="px-4 py-3 text-center">Late</th>
-                  <th className="px-4 py-3 text-center">Half Day</th>
-                  <th className="px-4 py-3 text-center">Absent</th>
-                  <th className="px-4 py-3 text-center">Leave</th>
-                  <th className="px-4 py-3 text-center">Holidays</th>
-                  <th className="px-4 py-3 text-right">Hours</th>
-                  <th className="px-4 py-3 text-right">Avg Late</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {(summaryRows ?? []).length === 0 && (
-                  <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-400">No employees found for this filter.</td></tr>
-                )}
-                {(summaryRows ?? []).map((r) => (
-                  <tr key={r.employee.id} className="hover:bg-slate-50/60">
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-slate-800">{r.employee.name}</p>
-                      <p className="text-[11px] text-slate-400">{r.employee.employee_code} · {r.employee.branch}</p>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{r.employee.department ?? '—'}</td>
-                    <td className="px-4 py-3 text-center font-semibold text-emerald-600">{r.present_days}</td>
-                    <td className="px-4 py-3 text-center text-amber-600">{r.late_days || '—'}</td>
-                    <td className="px-4 py-3 text-center text-blue-600">{r.half_days || '—'}</td>
-                    <td className="px-4 py-3 text-center text-rose-600">{r.absent_days || '—'}</td>
-                    <td className="px-4 py-3 text-center text-purple-600">{r.leave_days || '—'}</td>
-                    <td className="px-4 py-3 text-center text-slate-400">{r.holiday_days || '—'}</td>
-                    <td className="px-4 py-3 text-right font-medium text-slate-700">{r.worked_hours}h</td>
-                    <td className="px-4 py-3 text-right text-slate-400">{r.avg_late_minutes ? `${r.avg_late_minutes}m` : '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <Card padded={false}>
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 p-3">
+          <Tabs variant="pills" value={tab} onChange={setTab} tabs={[{ key: 'summary', label: 'By employee' }, { key: 'daily', label: 'Day by day' }]} />
+          <div className="flex items-center gap-1">
+            <Button variant="secondary" size="sm" icon={ChevronLeft} onClick={() => shift(-1)} aria-label="Previous month" />
+            <span className="min-w-32 text-center text-[13px] font-semibold text-slate-800">{monthName}</span>
+            <Button variant="secondary" size="sm" icon={ChevronRight} onClick={() => shift(1)} aria-label="Next month" />
           </div>
+          {branches.length > 1 && (
+            <Select className="w-auto min-w-40" value={branchId} onChange={(e) => { setBranchId(e.target.value); setDeptId(''); setEmployeeId('') }}>
+              <option value="">All branches</option>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </Select>
+          )}
+          <Select className="w-auto min-w-40" value={deptId} onChange={(e) => setDeptId(e.target.value)}>
+            <option value="">All departments</option>
+            {depts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </Select>
+          {tab === 'daily' && (
+            <Select className="w-auto min-w-44" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+              <option value="">All employees</option>
+              {employees.map((e) => <option key={e.id} value={e.id}>{e.full_name ?? `${e.first_name} ${e.last_name}`}</option>)}
+            </Select>
+          )}
         </div>
-      )}
 
-      {!isLoading && !isError && tab === 'daily' && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                  <th className="px-4 py-3">Employee</th>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-center">Check In</th>
-                  <th className="px-4 py-3 text-center">Check Out</th>
-                  <th className="px-4 py-3 text-right">Hours</th>
-                  <th className="px-4 py-3 text-right">Late By</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {(dailyRows ?? []).length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-400">No attendance records found for this filter.</td></tr>
-                )}
-                {(dailyRows ?? []).map((r) => (
-                  <tr key={`${r.employee.id}-${r.date}`} className="hover:bg-slate-50/60">
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-slate-800">{r.employee.name}</p>
-                      <p className="text-[11px] text-slate-400">{r.employee.employee_code} · {r.employee.branch}</p>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{r.date}</td>
-                    <td className={cn('px-4 py-3 font-medium', STATUS_STYLES[r.status] ?? 'text-slate-500')}>{statusLabel(r.status)}</td>
-                    <td className="px-4 py-3 text-center text-slate-700">{r.check_in ?? '—'}</td>
-                    <td className="px-4 py-3 text-center text-slate-700">{r.check_out ?? '—'}</td>
-                    <td className="px-4 py-3 text-right font-medium text-slate-700">{r.worked_hours != null ? `${r.worked_hours}h` : '—'}</td>
-                    <td className="px-4 py-3 text-right text-slate-400">{r.late_by_minutes ? `${r.late_by_minutes}m` : '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+        <ErrorBanner error={current.error} className="m-3" message={current.error ? 'Couldn’t load the report — you may not have access to attendance reports.' : undefined} />
+        {current.isLoading ? <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div>
+          : tab === 'summary' ? (
+            <Table rows={rows.map((r) => ({ ...r, key: r.employee.id }))} rowKey="key" empty={<EmptyState icon={BarChart3} title="No employees for these filters" />}
+              columns={[
+                { key: 'employee', label: 'Employee', render: (r) => <Person e={r.employee} /> },
+                { key: 'dept', label: 'Department', render: (r) => r.employee.department ?? '—' },
+                { key: 'present', label: 'Present', align: 'right', render: (r) => <span className="font-semibold text-emerald-700">{r.present_days}</span> },
+                { key: 'late', label: 'Late', align: 'right', render: (r) => <span className="text-amber-700">{dash(r.late_days)}</span> },
+                { key: 'half', label: 'Half day', align: 'right', render: (r) => dash(r.half_days) },
+                { key: 'absent', label: 'Absent', align: 'right', render: (r) => <span className="text-rose-600">{dash(r.absent_days)}</span> },
+                { key: 'leave', label: 'Leave', align: 'right', render: (r) => <span className="text-violet-700">{dash(r.leave_days)}</span> },
+                { key: 'hol', label: 'Holidays', align: 'right', render: (r) => dash(r.holiday_days) },
+                { key: 'hours', label: 'Hours', align: 'right', render: (r) => <span className="font-medium text-slate-900">{r.worked_hours}h</span> },
+                { key: 'avgLate', label: 'Avg late', align: 'right', render: (r) => dash(r.avg_late_minutes, 'm') },
+              ]}
+            />
+          ) : (
+            <Table rows={rows.map((r) => ({ ...r, key: `${r.employee.id}-${r.date}` }))} rowKey="key"
+              empty={<EmptyState icon={BarChart3} title="No attendance records for these filters" />}
+              columns={[
+                { key: 'employee', label: 'Employee', render: (r) => <Person e={r.employee} /> },
+                { key: 'date', label: 'Day', render: (r) => <span className="whitespace-nowrap">{day(r.date)}</span> },
+                { key: 'status', label: 'Status', render: (r) => <StatusPill status={r.status} /> },
+                { key: 'in', label: 'In', align: 'right', render: (r) => r.check_in ?? '—' },
+                { key: 'out', label: 'Out', align: 'right', render: (r) => r.check_out ?? '—' },
+                { key: 'hours', label: 'Hours', align: 'right', render: (r) => (r.worked_hours != null ? `${r.worked_hours}h` : '—') },
+                { key: 'late', label: 'Late by', align: 'right', render: (r) => dash(r.late_by_minutes, 'm') },
+              ]} />
+          )}
+      </Card>
     </div>
   )
 }

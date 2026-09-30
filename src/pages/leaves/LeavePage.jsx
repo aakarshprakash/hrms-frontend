@@ -1,181 +1,169 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { Plus, Calendar } from 'lucide-react'
-import { leaveApi } from '@/lib/api/leaves'
-import { useAuthStore } from '@/store/authStore'
+import { useQuery } from '@tanstack/react-query'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
+import { CalendarDays, Plus, UserPlus, Search, Inbox, CalendarRange } from 'lucide-react'
+import { leaveApi, approvalApi } from '@/lib/api/leaves'
 import { useRole } from '@/hooks/useRole'
-import { ApprovalInbox } from '@/components/approvals/ApprovalInbox'
-import { Badge } from '@/components/ui/Badge'
+import { useAuthStore } from '@/store/authStore'
+import { dateLabel } from '@/lib/format'
+import { dayCount, leaveRange } from '@/lib/leave'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn } from '@/lib/utils'
+import { PageHeader, Card, Button, Tabs, Table, StatusPill, EmptyState, Pagination, Input, Select, Avatar } from '@/components/ui/kit'
+import { BalanceCards, LeaveTypeChip } from '@/components/leave/BalanceCards'
+import { ApplyLeaveModal } from '@/components/leave/ApplyLeaveModal'
+import { LeaveDetailModal } from '@/components/leave/LeaveDetailModal'
+import { LedgerModal } from '@/components/leave/LedgerModal'
+import { LeaveCalendar } from '@/components/leave/LeaveCalendar'
 
-const STATUS_VARIANT = {
-  pending: 'default',
-  approved: 'active',
-  rejected: 'terminated',
-  cancelled: 'inactive',
-}
+export default function LeavePage() {
+  const { can, dataScope, user } = useRole()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const activeBranchId = useAuthStore((s) => s.activeBranchId)
 
-function renderLeaveMeta(item) {
-  return (
-    <p className="text-xs text-slate-500 mt-0.5">
-      {item.leave_type?.name ?? 'Leave'} · {item.start_date} → {item.end_date}
-      {item.days ? ` · ${item.days} day(s)` : ''}
-    </p>
-  )
-}
+  const isApprover = can('leaves.approve')
+  const seesTeam = isApprover || can('leaves.view') || dataScope !== 'self'
+  const [tab, setTab] = useState('mine')
+  // /leaves/apply (older links) opens the form straight away.
+  const [applying, setApplying] = useState(() => (location.pathname.endsWith('/apply') ? 'self' : null))
+  const [openLeave, setOpenLeave] = useState(null)
+  const [ledger, setLedger] = useState(null)
 
-function BalanceSummary() {
-  const user = useAuthStore((s) => s.user)
-  const { data: balances = [], isLoading } = useQuery({
-    queryKey: ['leave-balances', user?.employee_id],
-    queryFn: () => leaveApi.listBalances({ employee_id: user?.employee_id }).then((r) => r.data?.data ?? []),
+  const { data: summary = [], isLoading: loadingSummary } = useQuery({
+    queryKey: ['leave-summary', 'me'],
+    queryFn: () => leaveApi.summary().then((r) => r.data?.data ?? []),
     enabled: !!user?.employee_id,
   })
+  const { data: counts } = useQuery({
+    queryKey: ['approvals-count'],
+    queryFn: () => approvalApi.count().then((r) => r.data.data),
+    enabled: isApprover,
+  })
 
-  if (isLoading) return <div className="flex justify-center py-6"><Spinner className="h-6 w-6" /></div>
-  if (!balances.length) return null
+  const closeApply = () => {
+    setApplying(null)
+    if (location.pathname.endsWith('/apply')) navigate('/leaves', { replace: true })
+  }
+
+  const tabs = [
+    { key: 'mine', label: 'My requests' },
+    ...(seesTeam ? [{ key: 'calendar', label: 'Team calendar' }] : []),
+    ...(seesTeam ? [{ key: 'all', label: 'All requests' }] : []),
+  ]
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      {balances.map((b) => (
-        <div key={b.id} className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-xs text-slate-500 truncate">{b.leave_type?.name}</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{b.remaining ?? 0}</p>
-          <p className="text-xs text-slate-400">of {b.allocated ?? 0} days</p>
-        </div>
-      ))}
+    <div className="space-y-6">
+      <PageHeader icon={CalendarDays} title="Leave" subtitle="Balances, requests and who’s away."
+        actions={<>
+          {isApprover && counts?.leave > 0 && (
+            <Link to="/approvals" className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100">
+              <Inbox size={16} /> {counts.leave} awaiting you
+            </Link>
+          )}
+          {(isApprover || can('leaves.manage')) && <Button variant="secondary" icon={UserPlus} onClick={() => setApplying('behalf')}>Record leave</Button>}
+          {user?.employee_id && <Button icon={Plus} onClick={() => setApplying('self')}>Apply leave</Button>}
+        </>} />
+
+      {user?.employee_id && (
+        <BalanceCards rows={summary.filter((r) => r.leave_type.is_active || r.balance_id)} loading={loadingSummary}
+          onOpen={(row) => setLedger({ id: row.balance_id, title: `${row.leave_type.name} — history` })} />
+      )}
+
+      {tabs.length > 1 && <Tabs tabs={tabs} value={tab} onChange={setTab} />}
+
+      {tab === 'mine' && <MyRequests onOpen={setOpenLeave} onApply={() => setApplying('self')} hasProfile={!!user?.employee_id} />}
+      {tab === 'calendar' && <LeaveCalendar branchId={activeBranchId} onOpen={setOpenLeave} />}
+      {tab === 'all' && <AllRequests branchId={activeBranchId} onOpen={setOpenLeave} />}
+
+      {applying && <ApplyLeaveModal onBehalf={applying === 'behalf'} onClose={closeApply} />}
+      {openLeave && <LeaveDetailModal leaveId={openLeave} onClose={() => setOpenLeave(null)} />}
+      {ledger && <LedgerModal balanceId={ledger.id} title={ledger.title} onClose={() => setLedger(null)} />}
     </div>
   )
 }
 
-export default function LeavePage() {
-  const qc = useQueryClient()
-  const user = useAuthStore((s) => s.user)
-  const { hasRole } = useRole()
-  const isApprover = hasRole('hr') || hasRole('manager') || hasRole('branch_admin') || hasRole('super_admin')
-  const [tab, setTab] = useState('my')
-  const [toast, setToast] = useState(null)
+function MyRequests({ onOpen, onApply, hasProfile }) {
+  const [page, setPage] = useState(1)
+  const { data, isLoading } = useQuery({
+    queryKey: ['leaves', 'mine', page],
+    queryFn: () => leaveApi.list({ mine: 1, page, per_page: 15 }).then((r) => r.data),
+    enabled: hasProfile,
+    placeholderData: (prev) => prev,
+  })
 
-  function notify(msg, type = 'success') {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 4000)
+  if (!hasProfile) {
+    return <Card><EmptyState icon={CalendarRange} title="No employee profile" description="Your account isn’t linked to an employee record, so there’s no leave to show." /></Card>
   }
 
-  const { data: myLeaves = [], isLoading: myLoading } = useQuery({
-    queryKey: ['leaves', 'my'],
-    queryFn: () => leaveApi.list({ employee_id: user?.employee_id }).then((r) => r.data?.data ?? []),
-    enabled: !!user?.employee_id,
-  })
+  return (
+    <Card padded={false}>
+      {isLoading ? <div className="flex justify-center py-14"><Spinner className="h-7 w-7" /></div> : (
+        <Table rows={data?.data ?? []} onRowClick={(l) => onOpen(l.id)}
+          empty={<EmptyState icon={CalendarRange} title="No leave requests yet" description="Plan some time off — your balance is above."
+            action={<Button icon={Plus} onClick={onApply}>Apply leave</Button>} />}
+          columns={[
+            { key: 'type', label: 'Type', render: (l) => <LeaveTypeChip type={l.leave_type} /> },
+            { key: 'dates', label: 'Dates', render: (l) => <span className="font-medium text-slate-800">{leaveRange(l, { year: true })}</span> },
+            { key: 'days', label: 'Days', render: (l) => <span className="text-slate-600">{dayCount(l.days)}</span> },
+            { key: 'status', label: 'Status', render: (l) => <StatusPill status={l.status} /> },
+            { key: 'applied', label: 'Applied', render: (l) => <span className="text-xs text-slate-500">{dateLabel(l.created_at)}</span> },
+          ]} />
+      )}
+      <div className="px-4 pb-3"><Pagination meta={data?.meta} onPage={setPage} /></div>
+    </Card>
+  )
+}
 
-  const { data: pendingLeaves = [], isLoading: pendingLoading } = useQuery({
-    queryKey: ['leaves', 'pending'],
-    queryFn: () => leaveApi.list({ status: 'pending' }).then((r) => r.data?.data ?? []),
-    enabled: isApprover,
-  })
+function AllRequests({ branchId, onOpen }) {
+  const [filters, setFilters] = useState({ status: 'pending', search: '' })
+  const [page, setPage] = useState(1)
+  const set = (patch) => { setFilters((f) => ({ ...f, ...patch })); setPage(1) }
 
-  const approveMutation = useMutation({
-    mutationFn: ({ id, data }) => leaveApi.approve(id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['leaves'] }); notify('Leave approved.') },
-    onError: () => notify('Approval failed.', 'error'),
-  })
-
-  const rejectMutation = useMutation({
-    mutationFn: ({ id, data }) => leaveApi.reject(id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['leaves'] }); notify('Leave rejected.') },
-    onError: () => notify('Rejection failed.', 'error'),
-  })
-
-  const cancelMutation = useMutation({
-    mutationFn: (id) => leaveApi.cancel(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['leaves'] }); notify('Leave cancelled.') },
-    onError: () => notify('Cancel failed.', 'error'),
+  const { data, isLoading } = useQuery({
+    queryKey: ['leaves', 'all', filters, branchId, page],
+    queryFn: () => leaveApi.list({
+      status: filters.status || undefined, search: filters.search || undefined, branch_id: branchId || undefined, page, per_page: 20,
+    }).then((r) => r.data),
+    placeholderData: (prev) => prev,
   })
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">Leave Management</h1>
-        <Link to="/leaves/apply"
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-          <Plus size={16} /> Apply for Leave
-        </Link>
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Input className="w-60 pl-8" placeholder="Search employee…" value={filters.search} onChange={(e) => set({ search: e.target.value })} />
+        </div>
+        <Select className="w-auto" value={filters.status} onChange={(e) => set({ status: e.target.value })}>
+          <option value="">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="cancelled">Cancelled</option>
+        </Select>
       </div>
-
-      {toast && (
-        <div className={cn('rounded-lg px-4 py-3 text-sm font-medium',
-          toast.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200')}>
-          {toast.msg}
-        </div>
-      )}
-
-      {/* Leave balance cards */}
-      <BalanceSummary />
-
-      {/* Tabs */}
-      {isApprover && (
-        <div className="flex gap-1 p-1 rounded-lg bg-slate-100 w-fit">
-          {['my', 'pending'].map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={cn('rounded-md px-4 py-1.5 text-sm font-medium transition-colors',
-                tab === t ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700')}>
-              {t === 'my' ? 'My Leaves' : 'Pending Approval'}
-              {t === 'pending' && pendingLeaves.length > 0 && (
-                <span className="ml-1.5 rounded-full bg-red-500 text-white text-[10px] px-1.5 py-0.5">{pendingLeaves.length}</span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {tab === 'my' && (
-        <div>
-          {myLoading ? <div className="flex justify-center py-12"><Spinner className="h-8 w-8" /></div> : (
-            myLeaves.length === 0 ? (
-              <div className="rounded-xl border border-dashed py-12 text-center text-sm text-slate-400">
-                No leave requests yet. <Link to="/leaves/apply" className="text-blue-600 hover:underline">Apply now.</Link>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {myLeaves.map((leave) => (
-                  <div key={leave.id} className="rounded-xl border bg-white p-4 shadow-sm flex items-start justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-slate-900">{leave.leave_type?.name}</span>
-                        <Badge label={leave.status} variant={STATUS_VARIANT[leave.status] ?? 'default'} />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1">
-                        <Calendar size={11} className="inline mr-1" />
-                        {leave.start_date} → {leave.end_date}
-                        {leave.days ? ` · ${leave.days} day(s)` : ''}
-                      </p>
-                      {leave.reason && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{leave.reason}</p>}
-                    </div>
-                    {leave.status === 'pending' && (
-                      <button onClick={() => cancelMutation.mutate(leave.id)}
-                        className="shrink-0 text-xs text-red-500 hover:underline">
-                        Cancel
-                      </button>
-                    )}
+      <Card padded={false}>
+        {isLoading ? <div className="flex justify-center py-14"><Spinner className="h-7 w-7" /></div> : (
+          <Table rows={data?.data ?? []} onRowClick={(l) => onOpen(l.id)}
+            empty={<EmptyState icon={Inbox} title="No requests match" />}
+            columns={[
+              { key: 'employee', label: 'Employee', render: (l) => (
+                <div className="flex items-center gap-2.5">
+                  <Avatar name={`${l.employee?.first_name} ${l.employee?.last_name}`} size="sm" />
+                  <div>
+                    <p className="font-medium text-slate-800">{l.employee?.first_name} {l.employee?.last_name}</p>
+                    <p className="text-xs text-slate-400">{l.employee?.employee_code}{l.employee?.designation?.title && ` · ${l.employee.designation.title}`}</p>
                   </div>
-                ))}
-              </div>
-            )
-          )}
-        </div>
-      )}
-
-      {tab === 'pending' && isApprover && (
-        <ApprovalInbox
-          items={pendingLeaves}
-          loading={pendingLoading}
-          renderMeta={renderLeaveMeta}
-          emptyText="No pending leave requests."
-          onApprove={(id, data) => approveMutation.mutateAsync({ id, data })}
-          onReject={(id, data) => rejectMutation.mutateAsync({ id, data })}
-        />
-      )}
+                </div>
+              ) },
+              { key: 'type', label: 'Type', render: (l) => <LeaveTypeChip type={l.leave_type} /> },
+              { key: 'dates', label: 'Dates', render: (l) => <span className="text-slate-800">{leaveRange(l, { year: true })}</span> },
+              { key: 'days', label: 'Days', render: (l) => dayCount(l.days) },
+              { key: 'status', label: 'Status', render: (l) => <StatusPill status={l.status} /> },
+            ]} />
+        )}
+        <div className="px-4 pb-3"><Pagination meta={data?.meta} onPage={setPage} /></div>
+      </Card>
     </div>
   )
 }

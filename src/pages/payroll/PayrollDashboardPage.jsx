@@ -1,153 +1,157 @@
-import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { IndianRupee, TrendingUp, Users, Wallet } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { IndianRupee, Wallet, Users, Receipt, Landmark, PlayCircle, Building2, BarChart3 } from 'lucide-react'
 import { payrollApi } from '@/lib/api/payroll'
 import { useAuthStore } from '@/store/authStore'
+import { money, moneyShort, MONTHS_SHORT } from '@/lib/format'
 import { Spinner } from '@/components/ui/Spinner'
-import { cn } from '@/lib/utils'
+import { SERIES } from '@/lib/chart'
+import { PageHeader, Card, CardHeader, StatCard, Button, Select, EmptyState, Table, ChartTooltip } from '@/components/ui/kit'
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const STATUTORY = [
+  { key: 'pf', label: 'Provident fund', hint: 'Employee + employer + EPS', color: SERIES[0] },
+  { key: 'esi', label: 'ESI', hint: 'Employee + employer', color: SERIES[1] },
+  { key: 'tds', label: 'TDS', hint: 'Income tax withheld', color: SERIES[2] },
+  { key: 'pt', label: 'Professional tax', hint: 'State levy', color: SERIES[3] },
+]
 
-function fmtMoney(v) {
-  const n = Number(v ?? 0)
-  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`
-  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`
-  return `₹${n.toFixed(0)}`
-}
-
-function fmtFull(v) {
-  return `₹${Number(v ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
-}
-
-function StatCard({ label, value, icon: Icon, color, sub }) {
-  return (
-    <div className="rounded-2xl border bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{label}</p>
-          <p className="text-2xl font-bold text-slate-900">{value}</p>
-          {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
-        </div>
-        <div className={cn('rounded-xl p-2.5', color)}>
-          <Icon size={20} className="text-white" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="rounded-xl border bg-white shadow-lg p-3 text-sm">
-      <p className="font-semibold text-slate-900 mb-2">{label}</p>
-      {payload.map((p) => (
-        <p key={p.name} style={{ color: p.color }} className="text-xs">
-          {p.name}: {fmtFull(p.value)}
-        </p>
-      ))}
-    </div>
-  )
-}
-
+/** Payroll cost for a year: totals, the monthly run-rate, statutory dues and where the money goes. */
 export default function PayrollDashboardPage() {
   const activeBranch = useAuthStore((s) => s.activeBranch)
-  const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
+  const thisYear = new Date().getFullYear()
+  const [year, setYear] = useState(thisYear)
 
   const { data: summary, isLoading } = useQuery({
     queryKey: ['payroll-summary', activeBranch?.id, year],
-    queryFn: () => payrollApi.summary({
-      year,
-      ...(activeBranch ? { branch_id: activeBranch.id } : {}),
-    }).then((r) => r.data?.data ?? r.data).catch(() => null),
+    queryFn: () => payrollApi.summary({ year, ...(activeBranch ? { branch_id: activeBranch.id } : {}) })
+      .then((r) => r.data?.data ?? r.data).catch(() => null),
     retry: false,
   })
 
-  const chartData = summary?.monthly ?? []
+  const monthly = (summary?.monthly ?? []).map((m) => ({ ...m, label: MONTHS_SHORT[m.month - 1] }))
+  const hasData = monthly.length > 0
+  const latest = monthly.at(-1)
+  const previous = monthly.at(-2)
+  const delta = latest && previous?.employer_cost ? ((latest.employer_cost - previous.employer_cost) / previous.employer_cost) * 100 : null
+  const statutoryTotal = STATUTORY.reduce((n, s) => n + (summary?.statutory?.[s.key] ?? 0), 0)
+  const departments = summary?.by_department ?? []
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Payroll Cost Summary</h1>
-        <div className="flex items-center gap-3">
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 outline-none focus:border-blue-500">
-            {[now.getFullYear(), now.getFullYear() - 1].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+    <div>
+      <PageHeader icon={BarChart3} title="Payroll overview"
+        subtitle={`What ${activeBranch?.name ?? 'the organisation'} spent on pay in ${year} — processed, finalised and paid runs.`}
+        actions={<>
+          <Select className="w-auto" value={year} onChange={(e) => setYear(Number(e.target.value))} aria-label="Year">
+            {[thisYear, thisYear - 1, thisYear - 2].map((y) => <option key={y} value={y}>{y}</option>)}
+          </Select>
+          <Link to="/payroll/runs"><Button icon={PlayCircle}>Payroll runs</Button></Link>
+        </>} />
 
-      {isLoading ? (
-        <div className="flex justify-center py-24"><Spinner className="h-10 w-10" /></div>
-      ) : !summary ? (
-        <div className="rounded-2xl border border-dashed py-16 text-center text-sm text-slate-400">
-          No payroll data available. Run payroll first.
-        </div>
-      ) : (
-        <>
-          {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Total Payroll Cost" value={fmtMoney(summary.total_gross)} icon={Wallet} color="bg-blue-500" sub={`Gross pay ${year}`} />
-            <StatCard label="Total Net Paid" value={fmtMoney(summary.total_net)} icon={IndianRupee} color="bg-emerald-500" sub="After deductions" />
-            <StatCard label="Total Deductions" value={fmtMoney(summary.total_deductions)} icon={TrendingUp} color="bg-amber-500" sub="Tax + statutory" />
-            <StatCard label="Employees Paid" value={summary.employees_paid ?? '—'} icon={Users} color="bg-purple-500" sub="Unique employees" />
-          </div>
-
-          {/* Chart */}
-          {chartData.length > 0 && (
-            <div className="rounded-2xl border bg-white shadow-sm p-6">
-              <h2 className="text-sm font-semibold text-slate-900 mb-6">Monthly Payroll Cost</h2>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis
-                    dataKey="month"
-                    tickFormatter={(m) => MONTHS[m - 1]}
-                    tick={{ fontSize: 11, fill: '#94a3b8' }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tickFormatter={fmtMoney}
-                    tick={{ fontSize: 11, fill: '#94a3b8' }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="gross_pay" name="Gross Pay" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="net_pay" name="Net Pay" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="total_deductions" name="Deductions" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+      {isLoading ? <div className="flex justify-center py-24"><Spinner className="h-8 w-8" /></div>
+        : !hasData ? (
+          <Card>
+            <EmptyState icon={Wallet} title={`No processed payroll in ${year}`}
+              description="Once a payroll run is processed, its cost, deductions and statutory dues show up here."
+              action={<Link to="/payroll/runs"><Button icon={PlayCircle}>Run payroll</Button></Link>} />
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+              <StatCard label="Cost to company" value={moneyShort(summary.employer_cost)} icon={Wallet} tone="blue"
+                trend={delta != null ? { value: `${Math.abs(delta).toFixed(1)}%`, up: delta > 0, label: `${latest.label} vs ${previous.label}` } : undefined}
+                hint={delta == null ? `${monthly.length} month${monthly.length === 1 ? '' : 's'} in ${year}` : undefined} />
+              <StatCard label="Gross pay" value={moneyShort(summary.total_gross)} icon={IndianRupee} tone="purple" hint="Before deductions" />
+              <StatCard label="Net paid" value={moneyShort(summary.total_net)} icon={Receipt} tone="green"
+                hint={summary.total_gross ? `${Math.round((summary.total_net / summary.total_gross) * 100)}% of gross` : undefined} />
+              <StatCard label="Employees paid" value={summary.employees_paid} icon={Users} tone="amber"
+                hint={latest ? `${latest.headcount} on the ${latest.label} run` : undefined} />
             </div>
-          )}
 
-          {/* Department breakdown if available */}
-          {summary.by_department?.length > 0 && (
-            <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
-              <div className="px-5 py-3 border-b bg-slate-50">
-                <h2 className="text-sm font-semibold text-slate-900">Cost by Department</h2>
-              </div>
-              <div className="divide-y">
-                {summary.by_department.map((dept) => (
-                  <div key={dept.name} className="flex items-center justify-between px-5 py-3">
-                    <p className="text-sm font-medium text-slate-900">{dept.name}</p>
-                    <div className="flex items-center gap-6 text-sm">
-                      <span className="text-slate-500">{dept.employee_count} emp.</span>
-                      <span className="font-semibold text-slate-900">{fmtFull(dept.total_gross)}</span>
-                    </div>
+            <div className="grid items-start gap-6 xl:grid-cols-3">
+              <Card padded={false} className="xl:col-span-2">
+                <CardHeader title="Monthly payroll" icon={BarChart3} subtitle="Net pay and deductions make up gross; the line is cost to company." />
+                <div className="h-[300px] px-2 pb-3 pt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={monthly} margin={{ top: 4, right: 16, left: -4, bottom: 0 }}>
+                      <CartesianGrid vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                      <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(v) => moneyShort(v).replace('₹', '')} width={48} />
+                      <Tooltip content={<ChartTooltip format={(v) => money(v)} />} cursor={{ fill: '#f8fafc' }} />
+                      <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 8 }} formatter={(v) => <span className="text-slate-600">{v}</span>} />
+                      <Bar dataKey="net_pay" name="Net pay" stackId="g" fill="#2a78d6" stroke="#fff" strokeWidth={2} maxBarSize={36} isAnimationActive={false} />
+                      <Bar dataKey="total_deductions" name="Deductions" stackId="g" fill="#9ec5f4" stroke="#fff" strokeWidth={2} radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={false} />
+                      <Line dataKey="employer_cost" name="Cost to company" type="monotone" stroke="#0f172a" strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+              <Card padded={false}>
+                <CardHeader title="Statutory dues" icon={Landmark} subtitle={`${money(statutoryTotal)} in ${year}`}
+                  actions={<Link to="/payroll/compliance" className="text-xs font-medium text-blue-600 hover:underline">Compliance</Link>} />
+                {statutoryTotal > 0 && (
+                  <div className="mx-5 mt-5 flex h-2 gap-0.5 overflow-hidden rounded-full">
+                    {STATUTORY.map((s) => (
+                      <span key={s.key} className="first:rounded-l-full last:rounded-r-full" style={{ width: `${((summary.statutory?.[s.key] ?? 0) / statutoryTotal) * 100}%`, backgroundColor: s.color }} />
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+                <ul className="divide-y divide-slate-100 px-5 pb-2 pt-3">
+                  {STATUTORY.map((s) => (
+                    <li key={s.key} className="flex items-center gap-3 py-2.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-medium text-slate-800">{s.label}</p>
+                        <p className="text-xs text-slate-500">{s.hint}</p>
+                      </div>
+                      <span className="text-[13px] font-semibold tabular-nums text-slate-900">{money(summary.statutory?.[s.key] ?? 0)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
             </div>
-          )}
-        </>
-      )}
+
+            <div className="grid items-start gap-6 xl:grid-cols-2">
+              <Card padded={false}>
+                <CardHeader title="Cost by department" icon={Building2} subtitle="Gross pay for the year" />
+                {departments.length === 0 ? <EmptyState title="No department data" /> : (
+                  <ul className="space-y-3 p-5">
+                    {departments.map((d) => {
+                      const share = summary.total_gross ? (d.total_gross / summary.total_gross) * 100 : 0
+                      return (
+                        <li key={d.name}>
+                          <div className="mb-1 flex items-center justify-between gap-3 text-[13px]">
+                            <span className="truncate font-medium text-slate-700">{d.name}
+                              <span className="ml-1.5 font-normal text-slate-400">{d.employee_count} {d.employee_count === 1 ? 'person' : 'people'}</span>
+                            </span>
+                            <span className="whitespace-nowrap tabular-nums text-slate-900">{money(d.total_gross)} <span className="text-slate-400">· {share.toFixed(0)}%</span></span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                            <div className="h-full rounded-full bg-blue-500" style={{ width: `${share}%` }} />
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </Card>
+
+              <Card padded={false}>
+                <CardHeader title="Month by month" subtitle={`${monthly.length} run${monthly.length === 1 ? '' : 's'} in ${year}`} />
+                <Table rows={monthly} rowKey="month"
+                  columns={[
+                    { key: 'label', label: 'Month', render: (m) => <span className="font-medium text-slate-800">{m.label} {year}</span> },
+                    { key: 'headcount', label: 'People', align: 'right' },
+                    { key: 'gross', label: 'Gross', align: 'right', render: (m) => money(m.gross_pay) },
+                    { key: 'net', label: 'Net', align: 'right', render: (m) => money(m.net_pay) },
+                    { key: 'cost', label: 'Cost to company', align: 'right', render: (m) => <span className="font-semibold text-slate-900">{money(m.employer_cost)}</span> },
+                  ]} />
+              </Card>
+            </div>
+          </div>
+        )}
     </div>
   )
 }

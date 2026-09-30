@@ -1,93 +1,66 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { ChevronsLeft, ChevronDown, LifeBuoy } from 'lucide-react'
+import { approvalApi } from '@/lib/api/leaves'
 import { cn } from '@/lib/utils'
 import { useRole } from '@/hooks/useRole'
-import logoWhite from '@/assets/brand/logo-white.png'
+import { useAuthStore } from '@/store/authStore'
+import { SECTIONS, PLATFORM_SECTION, isAllowed } from '@/lib/navigation'
+import logoFull from '@/assets/brand/logo-full.png'
 import icon from '@/assets/brand/icon.png'
-import {
-  LayoutDashboard, Users, Clock, CalendarDays, DollarSign, Award,
-  BarChart2, ChevronLeft, Menu, Building, Briefcase, CalendarRange,
-  Timer, ChevronDown, ChevronRight as ChevronRightIcon, Briefcase as RecruitIcon,
-  Star, Settings, Sparkles, ShieldCheck,
-} from 'lucide-react'
 
-const MANAGE = ['super_admin', 'branch_admin', 'hr', 'manager']
-const ADMIN = ['super_admin', 'branch_admin']
+function matchesPrefix(pathname, prefix) {
+  return (Array.isArray(prefix) ? prefix : [prefix]).some((p) => pathname === p || pathname.startsWith(p + '/'))
+}
 
-const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/insights', icon: Sparkles, label: 'AI Insights', roles: MANAGE, perms: ['insights.view'] },
-  { to: '/employees', icon: Users, label: 'Employees' },
-  { to: '/departments', icon: Building, label: 'Departments', roles: MANAGE, perms: ['departments.manage'] },
-  { to: '/designations', icon: Briefcase, label: 'Designations', roles: MANAGE, perms: ['departments.manage'] },
-  {
-    label: 'Attendance', icon: Clock, group: true, prefix: '/attendance',
-    children: [
-      { to: '/attendance', label: 'My Attendance' },
-      { to: '/attendance/manage', label: 'Manage Attendance', roles: MANAGE, perms: ['attendance.view', 'attendance.manage'] },
-      { to: '/attendance/regularizations', label: 'Regularization' },
-      { to: '/attendance/reports', label: 'Reports', roles: MANAGE, perms: ['attendance.view'] },
-      { to: '/attendance/muster-roll', label: 'Muster Roll', roles: MANAGE, perms: ['attendance.view'] },
-      { to: '/attendance/exceptions', label: 'Exceptions', roles: MANAGE, perms: ['attendance.view'] },
-      { to: '/shifts/holidays', label: 'Holidays' },
-      { to: '/settings/shifts', label: 'Shift Settings', roles: MANAGE, perms: ['shifts.manage'] },
-      { to: '/settings/biometric', label: 'Biometric Sync', roles: ADMIN, perms: ['settings.manage'] },
-      { to: '/overtime', label: 'Overtime' },
-    ],
-  },
-  {
-    label: 'Leave', icon: CalendarDays, group: true, prefix: '/leaves',
-    children: [
-      { to: '/leaves', label: 'Leave Requests' },
-      { to: '/leaves/apply', label: 'Apply for Leave' },
-    ],
-  },
-  {
-    label: 'Payroll', icon: DollarSign, group: true, prefix: '/payroll', roles: MANAGE, perms: ['payroll.view', 'payroll.manage'],
-    children: [
-      { to: '/payroll', label: 'Cost Summary' },
-      { to: '/payroll/runs', label: 'Payroll Runs' },
-      { to: '/payroll/payslips', label: 'Payslips' },
-    ],
-  },
-  { to: '/certificates', icon: Award, label: 'Certificates' },
-  { to: '/settings/users', icon: ShieldCheck, label: 'User Management', roles: ADMIN, perms: ['users.manage'] },
-  { to: '/settings/roles', icon: ShieldCheck, label: 'Roles & Permissions', superOnly: true },
-  { to: '/recruitment', icon: RecruitIcon, label: 'Recruitment', roles: MANAGE },
-  { to: '/performance', icon: Star, label: 'Performance', roles: MANAGE },
-  { to: '/reports', icon: BarChart2, label: 'Reports', roles: MANAGE },
-  { to: '/settings', icon: Settings, label: 'Settings', roles: ADMIN, perms: ['settings.manage'] },
-]
+/** Live count next to a nav item (approvals waiting for me). */
+function NavBadge({ kind, compact }) {
+  const { data } = useQuery({
+    queryKey: ['approvals-count'],
+    queryFn: () => approvalApi.count().then((r) => r.data.data),
+    enabled: kind === 'approvals',
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  })
+  const count = data?.total ?? 0
+  if (!count) return null
+  return compact
+    ? <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white" />
+    : <span className="ml-auto rounded-full bg-rose-500 px-1.5 py-px text-[10px] font-bold text-white">{count > 99 ? '99+' : count}</span>
+}
 
-function NavGroup({ item, sidebarOpen, allowed }) {
+function NavGroup({ item, open, onExpandSidebar, allowed, onNavigate }) {
   const location = useLocation()
-  const isActive = location.pathname.startsWith(item.prefix)
+  const isActive = matchesPrefix(location.pathname, item.prefix)
   const [expanded, setExpanded] = useState(isActive)
   const Icon = item.icon
-  const children = item.children.filter((c) => allowed(c))
+  const children = item.children.filter(allowed)
+  if (children.length === 0) return null
 
   return (
     <div>
-      <button onClick={() => setExpanded((e) => !e)}
-        className={cn(
-          'w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
-          isActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-        )}>
-        <Icon size={18} className="shrink-0" />
-        {sidebarOpen && (
+      <button
+        onClick={() => { if (!open) { onExpandSidebar(); setExpanded(true) } else setExpanded((e) => !e) }}
+        title={!open ? item.label : undefined}
+        className={cn('group flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium transition-colors',
+          isActive ? 'text-slate-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900', !open && 'justify-center px-0')}>
+        <Icon size={17} className={cn('shrink-0', isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600')} />
+        {open && (
           <>
-            <span className="flex-1 text-left">{item.label}</span>
-            {expanded ? <ChevronDown size={14} /> : <ChevronRightIcon size={14} />}
+            <span className="flex-1 truncate text-left">{item.label}</span>
+            <ChevronDown size={14} className={cn('text-slate-400 transition-transform', !expanded && '-rotate-90')} />
           </>
         )}
       </button>
-      {expanded && sidebarOpen && (
-        <div className="ml-4 mt-1 border-l border-slate-700 pl-3 space-y-0.5">
+      {expanded && open && (
+        <div className="relative ml-[19px] mt-0.5 space-y-px border-l border-slate-200 py-0.5 pl-3">
           {children.map((child) => (
-            <NavLink key={child.to} to={child.to} end={child.to === item.prefix}
-              className={({ isActive }) => cn(
-                'flex items-center rounded-md px-2 py-1.5 text-sm transition-colors',
-                isActive ? 'bg-blue-600 text-white font-medium' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+            <NavLink key={child.to + child.label} to={child.to} end onClick={onNavigate}
+              className={({ isActive: a }) => cn(
+                'relative flex h-8 items-center rounded-md px-2.5 text-[13px] transition-colors',
+                a ? 'bg-blue-50 font-medium text-blue-700 before:absolute before:-left-[13px] before:top-1.5 before:bottom-1.5 before:w-0.5 before:rounded-full before:bg-blue-600'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
               )}>
               {child.label}
             </NavLink>
@@ -99,61 +72,95 @@ function NavGroup({ item, sidebarOpen, allowed }) {
 }
 
 export default function Sidebar({ open, onToggle }) {
-  const { isSuperAdmin, hasRole, can } = useRole()
-  const allowed = (item) => {
-    if (item.superOnly) return isSuperAdmin
-    if (!item.roles && !item.perms) return true
-    return isSuperAdmin
-      || (item.roles && hasRole(...item.roles))
-      || (item.perms && can(...item.perms))
-  }
+  const { can, hasFeature, isPlatformAdmin, inSupportMode } = useRole()
+  const company = useAuthStore((s) => s.company)
+  const subscription = useAuthStore((s) => s.subscription)
+  const allowed = (item) => isAllowed(item, { can, hasFeature })
+
+  const closeOnMobile = () => { if (window.innerWidth < 1024 && open) onToggle() }
+
+  // The platform operator outside support mode only has the platform console.
+  const sections = isPlatformAdmin && !inSupportMode ? [PLATFORM_SECTION] : [...(isPlatformAdmin ? [PLATFORM_SECTION] : []), ...SECTIONS]
 
   return (
     <>
-      {open && <div className="fixed inset-0 z-20 bg-black/50 lg:hidden" onClick={onToggle} />}
+      {open && <div className="fixed inset-0 z-20 bg-slate-900/40 lg:hidden" onClick={onToggle} />}
 
       <aside className={cn(
-        'fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-in-out',
-        'bg-gradient-to-b from-brand-navy to-slate-800',
-        open ? 'w-64' : 'w-0 overflow-hidden lg:w-[68px] lg:overflow-visible',
-        'lg:relative lg:flex shadow-xl'
+        'fixed inset-y-0 left-0 z-30 flex flex-col border-r border-slate-200 bg-white transition-all duration-200 ease-out',
+        open ? 'w-[248px]' : 'w-0 overflow-hidden lg:w-[68px] lg:overflow-visible',
+        'lg:relative lg:flex'
       )}>
-        {/* Logo */}
-        <div className="flex h-16 items-center justify-between px-4 border-b border-white/5 shrink-0">
-          {open ? (
-            <img src={logoWhite} alt="PeopleNex HRMS" className="h-8 w-auto shrink-0" />
-          ) : (
-            <img src={icon} alt="PeopleNex" className="mx-auto h-8 w-8 object-contain" />
+        <div className={cn('flex h-14 shrink-0 items-center border-b border-slate-100', open ? 'justify-between px-4' : 'justify-center')}>
+          {open
+            ? <img src={logoFull} alt="Peoplenex" className="h-8 w-auto" />
+            : <button onClick={onToggle} aria-label="Expand sidebar"><img src={icon} alt="Peoplenex" className="h-8 w-8 object-contain" /></button>}
+          {open && (
+            <button onClick={onToggle} aria-label="Collapse sidebar"
+              className="hidden rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 lg:flex">
+              <ChevronsLeft size={16} />
+            </button>
           )}
-          <button onClick={onToggle}
-            className={cn('rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors', !open && 'hidden lg:flex')}
-            aria-label="Toggle sidebar">
-            {open ? <ChevronLeft size={18} /> : <Menu size={18} />}
-          </button>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 space-y-0.5 px-2">
-          {navItems.filter(allowed).map((item) => {
-            if (item.group) return <NavGroup key={item.label} item={item} sidebarOpen={open} allowed={allowed} />
-            const Icon = item.icon
+        {open && company && (
+          <div className="mx-3 mt-3 flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-2">
+            {company.logo_url
+              ? <img src={company.logo_url} alt="" className="h-8 w-8 rounded-md object-cover" />
+              : <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-blue-600 to-indigo-600 text-[11px] font-bold text-white">{company.name.slice(0, 2).toUpperCase()}</div>}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-semibold text-slate-900">{company.name}</p>
+              <p className="truncate text-[11px] capitalize text-slate-500">
+                {company.industry?.replace(/_/g, ' ')}{subscription?.plan_name ? ` · ${subscription.plan_name}` : ''}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <nav className="flex-1 overflow-y-auto px-3 py-3">
+          {sections.map((section, i) => {
+            const items = section.items.filter(allowed)
+            if (items.length === 0) return null
             return (
-              <NavLink key={item.to} to={item.to}
-                className={({ isActive }) => cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
-                  isActive ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-                )}>
-                <Icon size={18} className="shrink-0" />
-                {open && <span>{item.label}</span>}
-              </NavLink>
+              <div key={section.label ?? i} className={cn(i > 0 && 'mt-4')}>
+                {section.label && open && (
+                  <p className="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{section.label}</p>
+                )}
+                {section.label && !open && i > 0 && <div className="mx-auto mb-2 h-px w-6 bg-slate-200" />}
+                <div className="space-y-px">
+                  {items.map((item) => {
+                    if (item.group) return <NavGroup key={item.label} item={item} open={open} onExpandSidebar={onToggle} allowed={allowed} onNavigate={closeOnMobile} />
+                    const Icon = item.icon
+                    return (
+                      <NavLink key={item.to + item.label} to={item.to} end={item.exact !== false} onClick={closeOnMobile}
+                        title={!open ? item.label : undefined}
+                        className={({ isActive }) => cn(
+                          'group relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium transition-colors',
+                          isActive ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                          !open && 'justify-center px-0'
+                        )}>
+                        {({ isActive }) => (
+                          <>
+                            <Icon size={17} className={cn('shrink-0', isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600')} />
+                            {open && <span className="truncate">{item.label}</span>}
+                            {item.badge && <NavBadge kind={item.badge} compact={!open} />}
+                          </>
+                        )}
+                      </NavLink>
+                    )
+                  })}
+                </div>
+              </div>
             )
           })}
         </nav>
 
         {open && (
-          <div className="px-4 py-3 border-t border-white/5">
-            <p className="text-xs text-slate-500">Peoplenex</p>
-            <p className="text-[10px] text-slate-600">Powered by Sysnac</p>
+          <div className="border-t border-slate-100 px-3 py-3">
+            <a href="mailto:support@peoplenex.online" className="flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+              <LifeBuoy size={17} className="text-slate-400" /> Help & support
+            </a>
+            <p className="mt-1 px-2.5 text-[11px] text-slate-400">Peoplenex HRMS · by Sysnac</p>
           </div>
         )}
       </aside>

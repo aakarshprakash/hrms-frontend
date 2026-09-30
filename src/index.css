@@ -6,10 +6,22 @@
   --color-brand-teal: #10b981;
   --color-brand-gray: #f2f4f7;
   --color-brand-slate: #64748b;
+  --color-canvas: #f6f7fb;
 }
 
 :root {
   color-scheme: light;
+}
+
+/*
+ * Tailwind v4 draws a bare `border` in currentColor (v3 used gray-200), which
+ * turned every un-coloured card and table border near-black. Restore the
+ * light default so borders stay quiet unless a colour is asked for.
+ */
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    border-color: var(--color-slate-200, currentColor);
+  }
 }
 
 * {
@@ -19,10 +31,12 @@
 body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Inter's clearer alternates: open digits, single-storey l, straight-sided t. */
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #0f172a;
-  background-color: #f1f5f9;
+  background-color: #f6f7fb;
 }
 
 /* Explicit colors for form elements — Tailwind v4 resets strip browser defaults */
