@@ -17,6 +17,8 @@ export const attendanceApi = {
   reportSummaryExport: (params) => api.get('/attendance/reports/summary/export', { params, responseType: 'blob' }),
   reportDaily: (params) => api.get('/attendance/reports/daily', { params }),
   reportDailyExport: (params) => api.get('/attendance/reports/daily/export', { params, responseType: 'blob' }),
+  monthlyPunches: (params) => api.get('/attendance/reports/monthly-punches', { params }),
+  monthlyPunchesExport: (params) => api.get('/attendance/reports/monthly-punches/export', { params, responseType: 'blob' }),
   musterRoll: (params) => api.get('/attendance/reports/muster-roll', { params }),
   exceptions: (params) => api.get('/attendance/exceptions', { params }),
 

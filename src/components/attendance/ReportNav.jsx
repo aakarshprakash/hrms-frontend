@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { BarChart3, Grid3x3, AlertTriangle } from 'lucide-react'
+import { BarChart3, Grid3x3, AlertTriangle, CalendarClock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const LINKS = [
   { to: '/attendance/reports', label: 'Summary', icon: BarChart3 },
+  { to: '/attendance/monthly-punches', label: 'Monthly punches', icon: CalendarClock },
   { to: '/attendance/muster-roll', label: 'Muster roll', icon: Grid3x3 },
   { to: '/attendance/exceptions', label: 'Exceptions', icon: AlertTriangle },
 ]

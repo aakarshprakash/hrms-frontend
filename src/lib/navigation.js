@@ -44,6 +44,7 @@ export const SECTIONS = [
           { to: '/attendance/regularizations', label: 'Regularization' },
           { to: '/overtime', label: 'Overtime' },
           { to: '/attendance/reports', label: 'Reports', perms: ['attendance.view'] },
+          { to: '/attendance/monthly-punches', label: 'Monthly Punch Report', perms: ['attendance.view', 'attendance.manage'] },
           { to: '/attendance/muster-roll', label: 'Muster Roll', perms: ['attendance.view'] },
           { to: '/attendance/exceptions', label: 'Exceptions', perms: ['attendance.view'] },
           { to: '/attendance/punches', label: 'Punch Log', perms: ['attendance.view', 'attendance.manage'] },

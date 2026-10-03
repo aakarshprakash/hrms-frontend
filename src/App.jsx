@@ -14,6 +14,7 @@ import DesignationsPage from '@/pages/departments/DesignationsPage'
 import AttendancePage from '@/pages/attendance/AttendancePage'
 import RegularizationPage from '@/pages/attendance/RegularizationPage'
 import AttendanceReportsPage from '@/pages/attendance/AttendanceReportsPage'
+import MonthlyPunchReportPage from '@/pages/attendance/MonthlyPunchReportPage'
 import MusterRollPage from '@/pages/attendance/MusterRollPage'
 import AttendanceExceptionsPage from '@/pages/attendance/AttendanceExceptionsPage'
 import LeavePage from '@/pages/leaves/LeavePage'
@@ -106,6 +107,7 @@ export default function App() {
               <Route path="/attendance/manage" element={<TeamAttendancePage />} />
               <Route path="/attendance/regularizations" element={<RegularizationPage />} />
               <Route path="/attendance/reports" element={<AttendanceReportsPage />} />
+              <Route path="/attendance/monthly-punches" element={<MonthlyPunchReportPage />} />
               <Route path="/attendance/muster-roll" element={<MusterRollPage />} />
               <Route path="/attendance/exceptions" element={<AttendanceExceptionsPage />} />
               <Route path="/attendance/punches" element={<PunchLogPage />} />
