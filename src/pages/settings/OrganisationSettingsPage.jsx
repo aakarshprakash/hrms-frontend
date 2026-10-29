@@ -6,6 +6,7 @@ import { refreshSession } from '@/lib/session'
 import { useRole } from '@/hooks/useRole'
 import { Spinner } from '@/components/ui/Spinner'
 import { PageHeader, Card, CardHeader, Button, Field, Input, Select, ErrorBanner } from '@/components/ui/kit'
+import EmployeeCodeSettings from './EmployeeCodeSettings'
 
 const INDUSTRIES = [
   ['automotive', 'Automotive (showrooms & service)'],
@@ -38,7 +39,17 @@ export default function OrganisationSettingsPage() {
 
   if (isLoading || !company) return <div className="flex justify-center py-24"><Spinner className="h-8 w-8" /></div>
 
-  return <OrganisationForm key={company.id} company={company} />
+  return (
+    <>
+      <OrganisationForm key={company.id} company={company} />
+      <EmployeeCodeSettingsForRole />
+    </>
+  )
+}
+
+function EmployeeCodeSettingsForRole() {
+  const { can } = useRole()
+  return <EmployeeCodeSettings editable={can('settings.manage')} />
 }
 
 function toForm(company) {

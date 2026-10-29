@@ -9,21 +9,22 @@ import {
   Cake, PencilLine, Mail, Copy, CheckCircle2, PartyPopper, RefreshCw,
 } from 'lucide-react'
 import { employeeApi } from '@/lib/api/employees'
-import { departmentApi, designationApi, branchApi } from '@/lib/api/departments'
+import { departmentApi, designationApi, branchApi, workLocationApi } from '@/lib/api/departments'
 import { shiftApi } from '@/lib/api/shifts'
 import { userApi } from '@/lib/api/users'
 import { useAuthStore } from '@/store/authStore'
 import { useRole } from '@/hooks/useRole'
 import { cn } from '@/lib/utils'
+import { Select } from '@/components/ui/kit'
 
 const optional = (s) => s.optional().or(z.literal(''))
 
 const schema = z.object({
   // Step 1 — basic details (required)
   first_name: z.string().min(1, 'Required'),
-  last_name: z.string().min(1, 'Required'),
+  last_name: z.string().optional(),
   email: z.string().email('Valid email required'),
-  employee_code: z.string().min(1, 'Required'),
+  employee_code: z.string().optional(), // required unless numbering is automatic (checked in goNext)
   branch_id: z.coerce.number().min(1, 'Required'),
   date_of_joining: z.string().min(1, 'Required'),
   employment_type: z.enum(['full_time', 'part_time', 'contract', 'intern']),
@@ -32,7 +33,7 @@ const schema = z.object({
   designation_id: optional(z.coerce.number()),
   reporting_manager_id: optional(z.coerce.number()),
   shift_id: optional(z.coerce.number()),
-  work_location: optional(z.string()),
+  work_location_id: optional(z.coerce.number()),
   geofence_mode: z.enum(['branch', 'anywhere']).optional(),
   // Step 3 — personal details (optional)
   phone: optional(z.string()),
@@ -57,13 +58,13 @@ const schema = z.object({
 
 const STEPS = [
   { key: 'basic', label: 'Basic Details', icon: User, fields: ['first_name', 'last_name', 'email', 'employee_code', 'branch_id', 'date_of_joining', 'employment_type'] },
-  { key: 'job', label: 'Job Details', icon: Briefcase, fields: ['department_id', 'designation_id', 'reporting_manager_id', 'shift_id', 'work_location', 'geofence_mode'] },
+  { key: 'job', label: 'Job Details', icon: Briefcase, fields: ['department_id', 'designation_id', 'reporting_manager_id', 'shift_id', 'work_location_id', 'geofence_mode'] },
   { key: 'personal', label: 'Personal Info', icon: Cake, fields: ['phone', 'date_of_birth', 'gender', 'marital_status'] },
   { key: 'account', label: 'Account & Access', icon: KeyRound, fields: ['create_login', 'password_option', 'password', 'role', 'send_welcome_email'] },
 ]
 
 const inputCls = (hasError) => cn(
-  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15',
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[14px] shadow-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15',
   hasError && 'border-rose-400 ring-3 ring-rose-500/15'
 )
 
@@ -79,7 +80,7 @@ export default function AddEmployeeWizard() {
   const [copied, setCopied] = useState(false)
 
   const {
-    register, handleSubmit, watch, setValue, trigger,
+    register, handleSubmit, watch, setValue, trigger, setError,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -95,6 +96,12 @@ export default function AddEmployeeWizard() {
   })
 
   const values = watch()
+
+  const { data: codeSettings } = useQuery({
+    queryKey: ['employee-code-settings'],
+    queryFn: () => employeeApi.codeSettings().then((r) => r.data.data),
+  })
+  const autoCode = !!codeSettings?.auto
 
   const { data: branchesData } = useQuery({
     queryKey: ['branches'],
@@ -125,6 +132,10 @@ export default function AddEmployeeWizard() {
     enabled: canAssignRole,
   })
 
+  const { data: workLocations = [] } = useQuery({
+    queryKey: ['work-locations', 'active'],
+    queryFn: () => workLocationApi.list({ active: 1 }).then((r) => r.data.data),
+  })
   const { data: shiftsData } = useQuery({
     queryKey: ['shifts', values.branch_id],
     queryFn: () => shiftApi.list({ branch_id: values.branch_id }).then((r) => r.data?.data ?? r.data ?? []),
@@ -147,7 +158,11 @@ export default function AddEmployeeWizard() {
   })
 
   async function goNext() {
-    const valid = await trigger(STEPS[step].fields)
+    let valid = await trigger(STEPS[step].fields)
+    if (step === 0 && !autoCode && !values.employee_code?.trim()) {
+      setError('employee_code', { message: 'Required' })
+      valid = false
+    }
     if (valid) setStep((s) => Math.min(s + 1, STEPS.length - 1))
   }
 
@@ -156,7 +171,7 @@ export default function AddEmployeeWizard() {
   }
 
   async function onSubmit(data) {
-    const optionalIds = ['department_id', 'designation_id', 'reporting_manager_id', 'shift_id']
+    const optionalIds = ['department_id', 'designation_id', 'reporting_manager_id', 'shift_id', 'work_location_id']
     const payload = {}
     for (const [key, value] of Object.entries(data)) {
       if (value === '' || value === undefined || Number.isNaN(value)) continue
@@ -198,20 +213,20 @@ export default function AddEmployeeWizard() {
           <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/60 p-5 text-left">
             <div className="mb-3 flex items-center gap-2">
               <KeyRound size={15} className="text-blue-600" />
-              <p className="text-[13px] font-bold text-slate-800">Login Credentials</p>
+              <p className="text-[14px] font-bold text-slate-800">Login Credentials</p>
             </div>
             <div className="space-y-2.5">
               <div className="rounded-xl bg-white px-3.5 py-2.5">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Email</p>
+                <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Email</p>
                 <p className="text-[13.5px] font-medium text-slate-800">{credentials.email}</p>
               </div>
               <div className="flex items-center justify-between rounded-xl bg-white px-3.5 py-2.5">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Temporary Password</p>
-                  <p className="font-mono text-[14px] font-semibold text-slate-800">{credentials.password}</p>
+                  <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Temporary Password</p>
+                  <p className="font-mono text-[15px] font-semibold text-slate-800">{credentials.password}</p>
                 </div>
                 <button onClick={copyPassword}
-                  className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[12px] font-semibold text-slate-600 hover:bg-slate-200">
+                  className="flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-[13px] font-semibold text-slate-600 hover:bg-slate-200">
                   {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
                   {copied ? 'Copied' : 'Copy'}
                 </button>
@@ -254,7 +269,7 @@ export default function AddEmployeeWizard() {
         </button>
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">Add Employee</h1>
-          <p className="text-[13px] text-slate-500">A few quick steps — only the essentials are required.</p>
+          <p className="text-[14px] text-slate-500">A few quick steps — only the essentials are required.</p>
         </div>
       </div>
 
@@ -264,14 +279,14 @@ export default function AddEmployeeWizard() {
           <div key={s.key} className="flex flex-1 items-center last:flex-none">
             <div className="flex flex-col items-center gap-1.5">
               <div className={cn(
-                'flex h-9 w-9 items-center justify-center rounded-full border-2 text-[13px] font-bold transition-all',
+                'flex h-9 w-9 items-center justify-center rounded-full border-2 text-[14px] font-bold transition-all',
                 i < step ? 'border-blue-600 bg-blue-600 text-white' :
                 i === step ? 'border-blue-600 bg-white text-blue-600' :
                 'border-slate-200 bg-white text-slate-300'
               )}>
                 {i < step ? <Check size={15} /> : i + 1}
               </div>
-              <span className={cn('hidden text-[11px] font-medium sm:block', i === step ? 'text-blue-600' : 'text-slate-400')}>
+              <span className={cn('hidden text-[12px] font-medium sm:block', i === step ? 'text-blue-600' : 'text-slate-400')}>
                 {s.label}
               </span>
             </div>
@@ -288,11 +303,11 @@ export default function AddEmployeeWizard() {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
               <current.icon size={16} />
             </div>
-            <h2 className="text-[15px] font-bold text-slate-900">{current.label}</h2>
+            <h2 className="text-[16px] font-bold text-slate-900">{current.label}</h2>
           </div>
 
           {mutation.isError && (
-            <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[13px] text-rose-600">
+            <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[14px] text-rose-600">
               {mutation.error?.response?.data?.message ?? 'Something went wrong.'}
               {mutation.error?.response?.data?.errors && (
                 <ul className="mt-1 list-disc list-inside">
@@ -308,31 +323,33 @@ export default function AddEmployeeWizard() {
               <Field label="First Name" error={errors.first_name} required>
                 <input {...register('first_name')} className={inputCls(errors.first_name)} />
               </Field>
-              <Field label="Last Name" error={errors.last_name} required>
+              <Field label="Last Name" error={errors.last_name}>
                 <input {...register('last_name')} className={inputCls(errors.last_name)} />
               </Field>
               <Field label="Work Email" error={errors.email} required className="sm:col-span-2">
                 <input type="email" {...register('email')} className={inputCls(errors.email)} placeholder="name@company.com" />
               </Field>
-              <Field label="Employee Code" error={errors.employee_code} required>
-                <input {...register('employee_code')} className={inputCls(errors.employee_code)} placeholder="e.g. EMP010" />
+              <Field label="Employee Code" error={errors.employee_code} required={!autoCode}>
+                <input {...register('employee_code')} className={inputCls(errors.employee_code)}
+                  placeholder={autoCode ? `Automatic — ${codeSettings.next}` : 'e.g. EMP010'} />
+                {autoCode && <p className="mt-1 text-[12px] text-slate-500">Leave blank to use the next code, or type one to override.</p>}
               </Field>
               <Field label="Date of Joining" error={errors.date_of_joining} required>
                 <input type="date" {...register('date_of_joining')} className={inputCls(errors.date_of_joining)} />
               </Field>
               <Field label="Branch" error={errors.branch_id} required>
-                <select {...register('branch_id')} className={inputCls(errors.branch_id)}>
+                <Select {...register('branch_id')} className={inputCls(errors.branch_id)}>
                   <option value="">Select branch</option>
                   {(branchesData?.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
+                </Select>
               </Field>
               <Field label="Employment Type" error={errors.employment_type} required>
-                <select {...register('employment_type')} className={inputCls(errors.employment_type)}>
+                <Select {...register('employment_type')} className={inputCls(errors.employment_type)}>
                   <option value="full_time">Full Time</option>
                   <option value="part_time">Part Time</option>
                   <option value="contract">Contract</option>
                   <option value="intern">Intern</option>
-                </select>
+                </Select>
               </Field>
             </div>
           )}
@@ -340,44 +357,47 @@ export default function AddEmployeeWizard() {
           {/* Step 2 — Job Details */}
           {step === 1 && (
             <div className="space-y-4">
-              <p className="text-[13px] text-slate-400">All optional — you can fill these in later from the employee profile.</p>
+              <p className="text-[14px] text-slate-400">All optional — you can fill these in later from the employee profile.</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Department">
-                  <select {...register('department_id')} className={inputCls()}>
+                  <Select {...register('department_id')} className={inputCls()}>
                     <option value="">Select department</option>
                     {(Array.isArray(deptsData) ? deptsData : []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Designation">
-                  <select {...register('designation_id')} className={inputCls()}>
+                  <Select {...register('designation_id')} className={inputCls()}>
                     <option value="">Select designation</option>
                     {(Array.isArray(desigData) ? desigData : []).map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Reporting Manager">
-                  <select {...register('reporting_manager_id')} className={inputCls()}>
+                  <Select {...register('reporting_manager_id')} className={inputCls()}>
                     <option value="">None</option>
                     {(Array.isArray(managersData) ? managersData : []).map((m) => (
                       <option key={m.id} value={m.id}>{m.first_name} {m.last_name} ({m.employee_code})</option>
                     ))}
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Shift">
-                  <select {...register('shift_id')} className={inputCls()}>
+                  <Select {...register('shift_id')} className={inputCls()}>
                     <option value="">No shift assigned</option>
                     {(Array.isArray(shiftsData) ? shiftsData : []).map((s) => (
                       <option key={s.id} value={s.id}>{s.name} ({s.start_time?.slice(0, 5)}–{s.end_time?.slice(0, 5)})</option>
                     ))}
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Work Location">
-                  <input {...register('work_location')} className={inputCls()} placeholder="e.g. Head Office, Remote" />
+                  <Select {...register('work_location_id')} className={inputCls()}>
+                    <option value="">{workLocations.length ? 'Not set' : 'Add locations under Organisation → Work Locations'}</option>
+                    {workLocations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </Select>
                 </Field>
                 <Field label="Geo-fencing">
-                  <select {...register('geofence_mode')} className={inputCls()}>
+                  <Select {...register('geofence_mode')} className={inputCls()}>
                     <option value="branch">On — punch only at branch sites</option>
                     <option value="anywhere">Off — can punch anywhere (sales, travelling)</option>
-                  </select>
+                  </Select>
                 </Field>
               </div>
             </div>
@@ -386,7 +406,7 @@ export default function AddEmployeeWizard() {
           {/* Step 3 — Personal Info */}
           {step === 2 && (
             <div className="space-y-4">
-              <p className="text-[13px] text-slate-400">Optional — adding a date of birth also unlocks the "use DOB as password" option next.</p>
+              <p className="text-[14px] text-slate-400">Optional — adding a date of birth also unlocks the "use DOB as password" option next.</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Phone">
                   <input type="tel" {...register('phone')} className={inputCls()} />
@@ -395,21 +415,21 @@ export default function AddEmployeeWizard() {
                   <input type="date" {...register('date_of_birth')} className={inputCls(errors.date_of_birth)} />
                 </Field>
                 <Field label="Gender">
-                  <select {...register('gender')} className={inputCls()}>
+                  <Select {...register('gender')} className={inputCls()}>
                     <option value="">Select</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                     <option value="other">Other</option>
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Marital Status">
-                  <select {...register('marital_status')} className={inputCls()}>
+                  <Select {...register('marital_status')} className={inputCls()}>
                     <option value="">Select</option>
                     <option value="single">Single</option>
                     <option value="married">Married</option>
                     <option value="divorced">Divorced</option>
                     <option value="widowed">Widowed</option>
-                  </select>
+                  </Select>
                 </Field>
               </div>
             </div>
@@ -421,7 +441,7 @@ export default function AddEmployeeWizard() {
               <label className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 px-4 py-3.5">
                 <div>
                   <p className="text-[13.5px] font-semibold text-slate-800">Create a login for this employee</p>
-                  <p className="text-[12px] text-slate-400">Lets them sign in to view attendance, apply for leave, download payslips.</p>
+                  <p className="text-[13px] text-slate-400">Lets them sign in to view attendance, apply for leave, download payslips.</p>
                 </div>
                 <ToggleSwitch checked={values.create_login} onChange={(v) => setValue('create_login', v, { shouldValidate: true })} />
               </label>
@@ -429,7 +449,7 @@ export default function AddEmployeeWizard() {
               {values.create_login && (
                 <>
                   <div>
-                    <p className="mb-2 text-[13px] font-semibold text-slate-700">Password</p>
+                    <p className="mb-2 text-[14px] font-semibold text-slate-700">Password</p>
                     <div className="grid gap-2.5 sm:grid-cols-3">
                       <OptionCard
                         icon={Sparkles}
@@ -468,12 +488,12 @@ export default function AddEmployeeWizard() {
 
                   {canAssignRole && (
                     <Field label="Role">
-                      <select {...register('role')} className={inputCls()}>
+                      <Select {...register('role')} className={inputCls()}>
                         <option value="">Employee (default)</option>
                         {(rolesData ?? []).map((r) => (
                           <option key={r.name} value={r.name}>{r.label}</option>
                         ))}
-                      </select>
+                      </Select>
                     </Field>
                   )}
 
@@ -482,7 +502,7 @@ export default function AddEmployeeWizard() {
                       <Mail size={15} className="text-slate-400" />
                       <div>
                         <p className="text-[13.5px] font-semibold text-slate-800">Email credentials to the employee</p>
-                        <p className="text-[12px] text-slate-400">Sends the login email and password automatically.</p>
+                        <p className="text-[13px] text-slate-400">Sends the login email and password automatically.</p>
                       </div>
                     </div>
                     <ToggleSwitch checked={values.send_welcome_email} onChange={(v) => setValue('send_welcome_email', v)} />
@@ -519,7 +539,7 @@ export default function AddEmployeeWizard() {
 function Field({ label, required, error, children, className }) {
   return (
     <div className={className}>
-      <label className="mb-1 block text-[13px] font-medium text-slate-700">
+      <label className="mb-1 block text-[14px] font-medium text-slate-700">
         {label}{required && <span className="ml-0.5 text-rose-500">*</span>}
       </label>
       {children}
@@ -545,8 +565,8 @@ function OptionCard({ icon: Icon, title, desc, active, disabled, onClick }) {
         active ? 'border-blue-500 bg-blue-50/60' : 'border-slate-200 hover:border-slate-300'
       )}>
       <Icon size={16} className={active ? 'text-blue-600' : 'text-slate-400'} />
-      <p className="mt-1.5 text-[13px] font-semibold text-slate-800">{title}</p>
-      <p className="text-[11px] leading-snug text-slate-400">{desc}</p>
+      <p className="mt-1.5 text-[14px] font-semibold text-slate-800">{title}</p>
+      <p className="text-[12px] leading-snug text-slate-400">{desc}</p>
     </button>
   )
 }

@@ -172,10 +172,10 @@ function DownloadTile({ report, params }) {
         <span className="block truncate text-xs text-slate-500">{download.isError ? 'Could not download — try again' : report.hint}</span>
       </span>
       <button type="button" title={`Download ${report.ext ?? 'csv'}`} disabled={download.isPending} onClick={() => download.mutate('file')}
-        className="rounded-md px-1.5 py-1 text-[11px] font-semibold uppercase text-slate-500 hover:bg-slate-100 hover:text-slate-800"><Download size={13} className="mr-0.5 inline" />{report.ext ?? 'csv'}</button>
+        className="rounded-md px-1.5 py-1 text-[12px] font-semibold uppercase text-slate-500 hover:bg-slate-100 hover:text-slate-800"><Download size={13} className="mr-0.5 inline" />{report.ext ?? 'csv'}</button>
       {report.key !== 'pf-ecr' && (
         <button type="button" title="Printable PDF statement" disabled={download.isPending} onClick={() => download.mutate('pdf')}
-          className="rounded-md px-1.5 py-1 text-[11px] font-semibold uppercase text-blue-600 hover:bg-blue-50">PDF</button>
+          className="rounded-md px-1.5 py-1 text-[12px] font-semibold uppercase text-blue-600 hover:bg-blue-50">PDF</button>
       )}
     </div>
   )

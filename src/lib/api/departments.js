@@ -16,6 +16,13 @@ export const designationApi = {
   remove: (id) => api.delete(`/designations/${id}`),
 }
 
+export const workLocationApi = {
+  list: (params) => api.get('/work-locations', { params }),
+  create: (data) => api.post('/work-locations', data),
+  update: (id, data) => api.put(`/work-locations/${id}`, data),
+  remove: (id) => api.delete(`/work-locations/${id}`),
+}
+
 export const branchApi = {
   list: () => api.get('/branches'),
   get: (id) => api.get(`/branches/${id}`),

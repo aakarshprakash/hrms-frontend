@@ -7,7 +7,7 @@ import { apiError } from '@/lib/api/axios'
 import { money, dateLabel } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/Spinner'
-import { PageHeader, Card, Button, Input, Toggle, StatusPill, ErrorBanner } from '@/components/ui/kit'
+import { PageHeader, Card, Button, Input, Toggle, StatusPill, ErrorBanner, Select } from '@/components/ui/kit'
 
 const STATUS = { draft: ['slate', 'Draft'], submitted: ['amber', 'With HR'], approved: ['green', 'Approved'], rejected: ['red', 'Returned'] }
 
@@ -32,9 +32,9 @@ function Form16Button({ financialYear }) {
   })
   return (
     <div className="flex items-center gap-1.5">
-      <select className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-[13px]" value={fy} onChange={(e) => setFy(e.target.value)}>
+      <Select className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-[14px]" value={fy} onChange={(e) => setFy(e.target.value)}>
         {years.map((y) => <option key={y} value={y}>FY {y}</option>)}
-      </select>
+      </Select>
       <Button variant="secondary" icon={FileDown} loading={get.isPending} onClick={() => get.mutate()}>Form 16</Button>
       {get.error && <span className="text-xs text-rose-600">{get.error.response?.status === 422 ? 'No finalized payroll that year' : 'Couldn’t download'}</span>}
     </div>
@@ -89,7 +89,7 @@ function Declaration({ data, onSaved }) {
             <button key={r} type="button" disabled={locked} onClick={() => setRegime(r)}
               className={cn('relative rounded-2xl border bg-white p-5 text-left transition-all disabled:cursor-default',
                 regime === r ? 'border-blue-500 shadow-md ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-slate-300')}>
-              {better && <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-600/20"><Sparkles size={11} /> Lower tax</span>}
+              {better && <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[12px] font-semibold text-emerald-700 ring-1 ring-emerald-600/20"><Sparkles size={11} /> Lower tax</span>}
               <p className="text-lg font-semibold text-slate-900">{r === 'new' ? 'New regime' : 'Old regime'}</p>
               <p className="text-xs text-slate-500">{r === 'new' ? 'Lower slab rates; only the standard deduction' : 'Higher slab rates; claim 80C, 80D, HRA, home-loan interest…'}</p>
               <p className="mt-4 text-2xl font-semibold tabular-nums text-slate-900">{money(c.annual_tax)}<span className="text-sm font-medium text-slate-400"> tax / year</span></p>
@@ -104,7 +104,7 @@ function Declaration({ data, onSaved }) {
       <Card padded={false} className={cn(regime === 'new' && 'opacity-60')}>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
           <div>
-            <p className="text-[15px] font-semibold text-slate-900">Investments & deductions</p>
+            <p className="text-[16px] font-semibold text-slate-900">Investments & deductions</p>
             <p className="text-xs text-slate-500">{regime === 'new' ? 'Not used under the new regime — fill them in to compare.' : 'Annual amounts. Caps are applied for you.'}</p>
           </div>
           <Toggle checked={metro} onChange={setMetro} disabled={locked} label="I live in a metro city" description="Delhi, Mumbai, Kolkata or Chennai (50% HRA limit)" />
@@ -115,7 +115,7 @@ function Declaration({ data, onSaved }) {
             return (
               <div key={s.key} className="grid items-center gap-3 px-5 py-3 md:grid-cols-[minmax(0,1fr)_160px_140px]">
                 <div className="min-w-0">
-                  <p className="text-[13px] font-medium text-slate-800">{s.label}</p>
+                  <p className="text-[14px] font-medium text-slate-800">{s.label}</p>
                   <p className="text-xs text-slate-500">{s.hint}{s.cap ? ` · up to ${money(s.cap)}` : ''}{s.senior_cap ? ` (${money(s.senior_cap)} senior citizen)` : ''}</p>
                   {s.senior_cap && (
                     <label className="mt-1 inline-flex items-center gap-1.5 text-xs text-slate-600">

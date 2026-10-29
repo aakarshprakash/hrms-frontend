@@ -115,7 +115,7 @@ function RaiseModal({ categories, onClose, onCreated }) {
           {[['request', 'A question or request', 'Salary, leave, letters, access…'], ['grievance', 'A grievance', 'Something that’s wrong at work — handled confidentially']].map(([key, title, hint]) => (
             <button key={key} type="button" onClick={() => set({ type: key, category: key === 'grievance' ? 'conduct' : 'payroll', priority: key === 'grievance' ? 'high' : 'normal' })}
               className={cn('rounded-lg border p-3 text-left', form.type === key ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500' : 'border-slate-200 hover:bg-slate-50')}>
-              <span className="block text-[13px] font-medium text-slate-900">{title}</span><span className="block text-xs text-slate-500">{hint}</span>
+              <span className="block text-[14px] font-medium text-slate-900">{title}</span><span className="block text-xs text-slate-500">{hint}</span>
             </button>
           ))}
         </div>

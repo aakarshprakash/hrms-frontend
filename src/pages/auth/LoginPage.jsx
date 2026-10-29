@@ -59,7 +59,7 @@ export default function LoginPage() {
     <AuthLayout title="Welcome back" subtitle="Sign in to your PeopleNex workspace."
       footer={publicConfig?.signup && <>New to PeopleNex? <Link to="/signup" className="font-semibold text-blue-600 hover:underline">Start a free trial</Link></>}>
       {params.get('reset') && !serverError && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[13px] text-emerald-700">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[14px] text-emerald-700">
           <CheckCircle2 size={16} /> Password updated — sign in with your new password.
         </div>
       )}
@@ -71,7 +71,7 @@ export default function LoginPage() {
         </Field>
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label htmlFor="password" className="text-[13px] font-medium text-slate-700">Password</label>
+            <label htmlFor="password" className="text-[14px] font-medium text-slate-700">Password</label>
             <Link to="/forgot-password" className="text-xs font-medium text-blue-600 hover:underline">Forgot password?</Link>
           </div>
           <div className="relative">

@@ -21,7 +21,7 @@ export default function PlatformPlansPage() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-lg font-bold text-slate-900">{p.name}</p>
-                  <p className="font-mono text-[11px] text-slate-400">{p.code}</p>
+                  <p className="font-mono text-[12px] text-slate-400">{p.code}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   {!p.is_public && <StatusPill tone="slate" label="Private" dot={false} />}

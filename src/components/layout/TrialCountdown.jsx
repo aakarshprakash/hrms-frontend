@@ -41,7 +41,7 @@ export function TrialChip() {
   if (!trial) return null
   return (
     <Link to="/settings/billing" title="Trial time left — open Plan & Billing"
-      className={cn('hidden h-7 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-semibold uppercase tracking-wide ring-1 sm:flex',
+      className={cn('hidden h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold uppercase tracking-wide ring-1 sm:flex',
         trial.urgent ? 'bg-amber-50 text-amber-700 ring-amber-600/25' : 'bg-emerald-50 text-emerald-700 ring-emerald-600/20')}>
       <Clock size={12} />
       Trial · {trial.days}d {trial.hours}h {trial.minutes}m
@@ -58,10 +58,10 @@ export function TrialCard() {
     <Link to="/settings/billing"
       className={cn('mx-3 mt-2 block rounded-lg border px-3 py-2.5 transition-colors',
         trial.urgent ? 'border-amber-200 bg-amber-50/70 hover:bg-amber-50' : 'border-emerald-200 bg-emerald-50/60 hover:bg-emerald-50')}>
-      <p className={cn('flex items-center gap-1.5 text-[12px] font-semibold', trial.urgent ? 'text-amber-800' : 'text-emerald-800')}>
+      <p className={cn('flex items-center gap-1.5 text-[13px] font-semibold', trial.urgent ? 'text-amber-800' : 'text-emerald-800')}>
         <Clock size={13} className="shrink-0" /> <span className="truncate">Trial ends {endLabel}</span>
       </p>
-      <p className="mt-0.5 text-[11px] text-slate-600">
+      <p className="mt-0.5 text-[12px] text-slate-600">
         {trial.days} day{trial.days === 1 ? '' : 's'}, {trial.hours} hour{trial.hours === 1 ? '' : 's'} left
         {trial.confirmed ? ` · ${trial.plan} after trial` : ' · choose a plan'}
       </p>

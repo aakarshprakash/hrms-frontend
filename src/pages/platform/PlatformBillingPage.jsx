@@ -6,6 +6,7 @@ import {
   Wallet, TrendingUp, Receipt, AlertTriangle, Hourglass, Search, Download, CheckCircle2, Ban, CreditCard, ArrowRight, Info,
 } from 'lucide-react'
 import { billingApi } from '@/lib/api/billing'
+import PlatformLicenses from './PlatformLicenses'
 import { saveBlob } from '@/lib/api/payroll'
 import { money, moneyShort, dateLabel } from '@/lib/format'
 import { SERIES, GRID, TICK } from '@/lib/chart'
@@ -21,6 +22,7 @@ const TABS = [
   { key: 'subscriptions', label: 'Subscriptions' },
   { key: 'invoices', label: 'Invoices' },
   { key: 'payments', label: 'Payments' },
+  { key: 'licenses', label: 'Licence keys' },
 ]
 
 const SUB_STATUS = {
@@ -44,6 +46,7 @@ export default function PlatformBillingPage() {
       {tab === 'subscriptions' && <Subscriptions />}
       {tab === 'invoices' && <Invoices />}
       {tab === 'payments' && <Payments />}
+      {tab === 'licenses' && <PlatformLicenses />}
     </div>
   )
 }
@@ -61,7 +64,7 @@ function Overview({ onTab }) {
   return (
     <div className="space-y-6">
       {!data.online_payment && (
-        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[14px] text-amber-900">
           <Info size={16} className="mt-0.5 shrink-0" />
           <p>Online payment is off — clients can only pay by bank transfer. Add <code className="font-mono">RAZORPAY_KEY_ID</code>, <code className="font-mono">RAZORPAY_KEY_SECRET</code> and <code className="font-mono">RAZORPAY_WEBHOOK_SECRET</code> to the backend <code className="font-mono">.env</code> to switch on Razorpay Checkout.</p>
         </div>
@@ -100,14 +103,14 @@ function Overview({ onTab }) {
           <CardHeader title="Clients by status" subtitle={`${Object.values(status).reduce((a, b) => a + b, 0)} organisations`} />
           <div className="divide-y divide-slate-100">
             {Object.entries(SUB_STATUS).map(([key, [tone, label]]) => (
-              <div key={key} className="flex items-center justify-between px-5 py-2.5 text-[13px]">
+              <div key={key} className="flex items-center justify-between px-5 py-2.5 text-[14px]">
                 <StatusPill tone={tone} label={label} />
                 <span className="font-semibold tabular-nums text-slate-900">{status[key] ?? 0}</span>
               </div>
             ))}
           </div>
           <div className="border-t border-slate-100 px-5 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Live plans</p>
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-slate-400">Live plans</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {Object.entries(data.by_plan ?? {}).map(([plan, n]) => (
                 <span key={plan} className="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-700">{plan} <span className="font-semibold">{n}</span></span>
@@ -312,13 +315,13 @@ function Payments() {
               { key: 'company', label: 'Organisation', render: (p) => <span className="font-medium text-slate-900">{p.company?.name ?? '—'}</span> },
               { key: 'invoice', label: 'Invoice', render: (p) => <span className="font-mono text-xs">{p.invoice?.number ?? '—'}</span> },
               { key: 'ids', label: 'Razorpay', render: (p) => (
-                <div className="font-mono text-[11px] text-slate-500"><p>{p.gateway_payment_id ?? '—'}</p><p className="text-slate-400">{p.gateway_order_id}</p></div>
+                <div className="font-mono text-[12px] text-slate-500"><p>{p.gateway_payment_id ?? '—'}</p><p className="text-slate-400">{p.gateway_order_id}</p></div>
               ) },
               { key: 'method', label: 'Method', render: (p) => <span className="text-xs uppercase">{p.method ?? '—'}</span> },
               { key: 'status', label: 'Status', render: (p) => (
                 <div>
                   <StatusPill tone={{ captured: 'green', created: 'slate', failed: 'red' }[p.status]} label={{ captured: 'Captured', created: 'Started', failed: 'Failed' }[p.status] ?? p.status} />
-                  {p.error && <p className="mt-0.5 max-w-[220px] truncate text-[11px] text-rose-600" title={p.error}>{p.error}</p>}
+                  {p.error && <p className="mt-0.5 max-w-[220px] truncate text-[12px] text-rose-600" title={p.error}>{p.error}</p>}
                 </div>
               ) },
               { key: 'amount', label: 'Amount', align: 'right', render: (p) => money(p.amount, { paise: true }) },

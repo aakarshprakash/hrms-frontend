@@ -61,7 +61,7 @@ export function LeaveCalendar({ branchId, onOpen }) {
         <button onClick={() => shift(1)} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"><ChevronRight size={18} /></button>
       </div>
       <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/70">
-        {WEEKDAYS.map((d) => <div key={d} className="py-2 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-500">{d}</div>)}
+        {WEEKDAYS.map((d) => <div key={d} className="py-2 text-center text-[12px] font-semibold uppercase tracking-wide text-slate-500">{d}</div>)}
       </div>
       <div className="grid grid-cols-7">
         {(lastRow ? cells.slice(0, 35) : cells).map((d) => {
@@ -76,9 +76,9 @@ export function LeaveCalendar({ branchId, onOpen }) {
                   key === today ? 'bg-blue-600 font-bold text-white' : inMonth ? 'text-slate-700' : 'text-slate-300')}>
                   {d.getDate()}
                 </span>
-                {leaves.length > 0 && <span className="text-[10px] font-medium text-slate-400">{leaves.length} away</span>}
+                {leaves.length > 0 && <span className="text-[11px] font-medium text-slate-400">{leaves.length} away</span>}
               </div>
-              {holiday && <p className="mt-0.5 truncate text-[10px] font-semibold text-teal-700" title={holiday}>{holiday}</p>}
+              {holiday && <p className="mt-0.5 truncate text-[11px] font-semibold text-teal-700" title={holiday}>{holiday}</p>}
               <div className="mt-1 space-y-0.5">
                 {leaves.slice(0, 3).map((l) => (
                   <button key={l.id} onClick={() => onOpen?.(l.id)} title={`${l.employee?.first_name} ${l.employee?.last_name} · ${l.leave_type?.name}${l.status === 'pending' ? ' (pending)' : ''}`}
@@ -89,7 +89,7 @@ export function LeaveCalendar({ branchId, onOpen }) {
                     {l.half_day_session && <span className="opacity-80">½</span>}
                   </button>
                 ))}
-                {leaves.length > 3 && <p className="px-1 text-[10px] text-slate-400">+{leaves.length - 3} more</p>}
+                {leaves.length > 3 && <p className="px-1 text-[11px] text-slate-400">+{leaves.length - 3} more</p>}
               </div>
             </div>
           )

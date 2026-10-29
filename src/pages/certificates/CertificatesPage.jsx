@@ -18,8 +18,8 @@ function useFlash() {
   const show = (msg, type = 'success') => { setFlash({ msg, type }); setTimeout(() => setFlash(null), 4000) }
   const node = flash && (
     <div className={flash.type === 'success'
-      ? 'mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-[13px] font-medium text-emerald-700'
-      : 'mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-[13px] font-medium text-rose-700'}>{flash.msg}</div>
+      ? 'mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-[14px] font-medium text-emerald-700'
+      : 'mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-[14px] font-medium text-rose-700'}>{flash.msg}</div>
   )
   return [node, show]
 }
@@ -45,7 +45,7 @@ function TemplatesTab({ templates, isLoading, notify, onRequest }) {
             <div className="flex items-start gap-3 p-5">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 ring-1 ring-inset ring-blue-100"><FileText size={18} /></div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[14px] font-semibold text-slate-900">{t.name}</p>
+                <p className="truncate text-[15px] font-semibold text-slate-900">{t.name}</p>
                 <p className="text-xs text-slate-500">{typeLabel(t.type)} letter</p>
               </div>
               <StatusPill status={published ? 'published' : 'draft'} />
@@ -109,9 +109,9 @@ function MyRequestsTab({ templates, onRequest }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="mb-3 text-[13px] font-semibold text-slate-700">Request a document</h2>
+        <h2 className="mb-3 text-[14px] font-semibold text-slate-700">Request a document</h2>
         {available.length === 0 ? (
-          <Card><p className="text-center text-[13px] text-slate-500">HR hasn’t published any letters for request yet.</p></Card>
+          <Card><p className="text-center text-[14px] text-slate-500">HR hasn’t published any letters for request yet.</p></Card>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {available.map((t) => (
@@ -119,7 +119,7 @@ function MyRequestsTab({ templates, onRequest }) {
                 className="group flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white p-4 text-left shadow-xs transition-all hover:border-blue-300 hover:shadow-md">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><FileText size={17} /></div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-semibold text-slate-900 group-hover:text-blue-700">{t.name}</p>
+                  <p className="truncate text-[14px] font-semibold text-slate-900 group-hover:text-blue-700">{t.name}</p>
                   <p className="text-xs text-slate-500">{typeLabel(t.type)}</p>
                 </div>
                 <Send size={15} className="text-slate-300 group-hover:text-blue-500" />
@@ -129,7 +129,7 @@ function MyRequestsTab({ templates, onRequest }) {
         )}
       </div>
       <Card padded={false}>
-        <div className="border-b border-slate-100 px-5 py-3.5"><h3 className="text-[15px] font-semibold text-slate-900">My requests</h3></div>
+        <div className="border-b border-slate-100 px-5 py-3.5"><h3 className="text-[16px] font-semibold text-slate-900">My requests</h3></div>
         <Table rows={requests} empty={<EmptyState icon={Send} title="No requests yet" />}
           columns={[
             { key: 'template', label: 'Document', render: (r) => <span className="font-medium text-slate-900">{r.template?.name}</span> },
@@ -206,7 +206,7 @@ export default function CertificatesPage() {
       {requestTarget && (
         <Modal size="sm" title={`Request ${requestTarget.name}`} onClose={() => setRequestTarget(null)}
           footer={<><Button variant="secondary" onClick={() => setRequestTarget(null)}>Cancel</Button><Button icon={Send} loading={request.isPending} onClick={() => request.mutate(requestTarget.id)}>Send request</Button></>}>
-          <p className="text-[13px] text-slate-600">HR reviews the request and issues the {typeLabel(requestTarget.type).toLowerCase()} letter. You’ll find it under <strong>My documents</strong> once issued.</p>
+          <p className="text-[14px] text-slate-600">HR reviews the request and issues the {typeLabel(requestTarget.type).toLowerCase()} letter. You’ll find it under <strong>My documents</strong> once issued.</p>
         </Modal>
       )}
     </div>

@@ -8,7 +8,7 @@ import { biometricApi } from '@/lib/api/biometric'
 import { employeeApi } from '@/lib/api/employees'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn } from '@/lib/utils'
-import { PageHeader, Card, Button, StatusPill, EmptyState, ErrorBanner } from '@/components/ui/kit'
+import { PageHeader, Card, Button, StatusPill, EmptyState, ErrorBanner, Select } from '@/components/ui/kit'
 
 const DEFAULT_API_URL = 'https://bio.kochi.digital/api/fetch-punches'
 const today = () => new Date().toISOString().slice(0, 10)
@@ -53,7 +53,7 @@ export default function BiometricSettingsPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-[14px] font-semibold text-slate-900">{branch.name}</p>
+                          <p className="text-[15px] font-semibold text-slate-900">{branch.name}</p>
                           <StatusPill tone={STATUS[status].tone} label={STATUS[status].label} />
                         </div>
                         <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-slate-500">
@@ -70,7 +70,7 @@ export default function BiometricSettingsPage() {
                       </div>
                     </div>
                     {cfg?.last_sync_status === 'failed' && (
-                      <div className="mt-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2 text-[13px] text-rose-700">
+                      <div className="mt-3 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2 text-[14px] text-rose-700">
                         <AlertCircle size={14} className="mt-0.5 shrink-0" />Last sync failed: {cfg.last_sync_message}
                       </div>
                     )}
@@ -123,7 +123,7 @@ function ConfigModal({ branch, onClose, onSaved }) {
     mutation.mutate(form)
   }
 
-  const field = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15'
+  const field = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[14px] shadow-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -145,7 +145,7 @@ function ConfigModal({ branch, onClose, onSaved }) {
             <label className="mb-1 block text-sm font-medium text-slate-700">API Endpoint URL <span className="text-rose-500">*</span></label>
             <input required type="url" className={field} value={form.api_url}
               onChange={(e) => setForm({ ...form, api_url: e.target.value })} />
-            <p className="mt-1 text-[11px] text-slate-400">Provided by your biometric device vendor's activation letter.</p>
+            <p className="mt-1 text-[12px] text-slate-400">Provided by your biometric device vendor's activation letter.</p>
           </div>
 
           <div>
@@ -166,7 +166,7 @@ function ConfigModal({ branch, onClose, onSaved }) {
           <label className="flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 px-4 py-3.5">
             <div>
               <p className="text-[13.5px] font-semibold text-slate-800">Enable this integration</p>
-              <p className="text-[12px] text-slate-400">Turns on manual "Sync Now" and hourly auto-sync for this branch.</p>
+              <p className="text-[13px] text-slate-400">Turns on manual "Sync Now" and hourly auto-sync for this branch.</p>
             </div>
             <button type="button" onClick={() => setForm({ ...form, enabled: !form.enabled })}
               className={cn('relative h-6 w-11 shrink-0 rounded-full transition-colors', form.enabled ? 'bg-blue-600' : 'bg-slate-200')}>
@@ -205,7 +205,7 @@ function SyncModal({ branch, onClose }) {
   })
 
   const log = result?.data
-  const field = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-xs text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15'
+  const field = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[14px] shadow-xs text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -235,7 +235,7 @@ function SyncModal({ branch, onClose }) {
           </button>
 
           {result?.error && (
-            <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] text-rose-600">
+            <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-[14px] text-rose-600">
               <AlertCircle size={15} className="mt-0.5 shrink-0" /> {result.error}
             </div>
           )}
@@ -244,20 +244,20 @@ function SyncModal({ branch, onClose }) {
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4">
               <div className="mb-2 flex items-center gap-2 text-emerald-700">
                 <CheckCircle2 size={15} />
-                <p className="text-[13px] font-bold">Sync complete</p>
+                <p className="text-[14px] font-bold">Sync complete</p>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg bg-white px-2 py-2">
                   <p className="text-lg font-extrabold text-slate-800">{log.total_fetched}</p>
-                  <p className="text-[10px] text-slate-400">Punches fetched</p>
+                  <p className="text-[11px] text-slate-400">Punches fetched</p>
                 </div>
                 <div className="rounded-lg bg-white px-2 py-2">
                   <p className="text-lg font-extrabold text-emerald-600">{log.matched_count}</p>
-                  <p className="text-[10px] text-slate-400">Days matched</p>
+                  <p className="text-[11px] text-slate-400">Days matched</p>
                 </div>
                 <div className="rounded-lg bg-white px-2 py-2">
                   <p className="text-lg font-extrabold text-amber-600">{log.unmatched_count}</p>
-                  <p className="text-[10px] text-slate-400">Unmatched codes</p>
+                  <p className="text-[11px] text-slate-400">Unmatched codes</p>
                 </div>
               </div>
 
@@ -270,17 +270,17 @@ function SyncModal({ branch, onClose }) {
           <div>
             <div className="mb-2 flex items-center gap-2">
               <History size={14} className="text-slate-400" />
-              <p className="text-[12px] font-bold uppercase tracking-wide text-slate-400">Recent Syncs</p>
+              <p className="text-[13px] font-bold uppercase tracking-wide text-slate-400">Recent Syncs</p>
             </div>
             {(!logs || logs.length === 0) ? (
               <p className="py-3 text-center text-[12.5px] text-slate-400">No sync history yet.</p>
             ) : (
               <div className="space-y-1.5">
                 {logs.slice(0, 8).map((l) => (
-                  <div key={l.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[12px]">
+                  <div key={l.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-[13px]">
                     <span className="text-slate-600">{l.date_from === l.date_to ? l.date_from : `${l.date_from} → ${l.date_to}`}</span>
                     <span className="text-slate-400">{l.matched_count} matched, {l.unmatched_count} unmatched</span>
-                    <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset',
+                    <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset',
                       l.status === 'success' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-rose-50 text-rose-600 ring-rose-600/20'
                     )}>{l.status}</span>
                   </div>
@@ -336,7 +336,7 @@ function MapCodesModal({ branch, onClose }) {
         <div className="flex items-center justify-between border-b px-5 py-4">
           <div>
             <h2 className="font-semibold text-slate-900">Map Employee Codes — {branch.name}</h2>
-            <p className="text-[12px] text-slate-400">Link each employee to their ID on the biometric device — works even while the vendor API is down.</p>
+            <p className="text-[13px] text-slate-400">Link each employee to their ID on the biometric device — works even while the vendor API is down.</p>
           </div>
           <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-slate-100"><X size={16} /></button>
         </div>
@@ -346,7 +346,7 @@ function MapCodesModal({ branch, onClose }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or employee code…"
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[14px] shadow-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15"
           />
         </div>
 
@@ -354,7 +354,7 @@ function MapCodesModal({ branch, onClose }) {
           {isLoading ? (
             <div className="flex justify-center py-10"><Spinner className="h-7 w-7" /></div>
           ) : filtered.length === 0 ? (
-            <p className="py-6 text-center text-[13px] text-slate-400">No matching employees.</p>
+            <p className="py-6 text-center text-[14px] text-slate-400">No matching employees.</p>
           ) : (
             <div className="space-y-2">
               {filtered.map((emp) => {
@@ -363,11 +363,11 @@ function MapCodesModal({ branch, onClose }) {
                 return (
                   <div key={emp.id} className="flex items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50/50 px-3 py-2.5">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-semibold text-slate-800">{emp.first_name} {emp.last_name}</p>
-                      <p className="text-[11px] text-slate-400">{emp.employee_code}</p>
+                      <p className="truncate text-[14px] font-semibold text-slate-800">{emp.first_name} {emp.last_name}</p>
+                      <p className="text-[12px] text-slate-400">{emp.employee_code}</p>
                     </div>
                     <input
-                      className="w-28 rounded-lg border-0 bg-white px-2.5 py-1.5 text-[12px] font-mono text-slate-700 shadow-sm outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500/60"
+                      className="w-28 rounded-lg border-0 bg-white px-2.5 py-1.5 text-[13px] font-mono text-slate-700 shadow-sm outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500/60"
                       placeholder="Device code"
                       value={val}
                       onChange={(e) => setDrafts((prev) => ({ ...prev, [emp.id]: e.target.value }))}
@@ -376,7 +376,7 @@ function MapCodesModal({ branch, onClose }) {
                       onClick={() => mutation.mutate({ employeeId: emp.id, code: val.trim() })}
                       disabled={!dirty || mutation.isPending}
                       className={cn(
-                        'flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors',
+                        'flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition-colors',
                         savedFlash[emp.id] ? 'bg-emerald-100 text-emerald-700' :
                         dirty ? 'bg-blue-600 text-white hover:bg-blue-700' : 'cursor-not-allowed bg-slate-100 text-slate-300'
                       )}
@@ -423,19 +423,19 @@ function UnmatchedCodes({ branch, codes }) {
     <div className="mt-3 border-t border-emerald-200/60 pt-3">
       <div className="mb-2 flex items-center gap-1.5">
         <ShieldAlert size={13} className="text-amber-500" />
-        <p className="text-[12px] font-semibold text-slate-700">Map these device codes to employees</p>
+        <p className="text-[13px] font-semibold text-slate-700">Map these device codes to employees</p>
       </div>
       <div className="space-y-2">
         {codes.map((code) => (
           <div key={code} className="flex items-center gap-2 rounded-lg bg-white px-3 py-2">
-            <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-[11px] font-semibold text-slate-600">{code}</span>
+            <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-[12px] font-semibold text-slate-600">{code}</span>
             {assigned[code] ? (
-              <span className="flex items-center gap-1 text-[12px] font-medium text-emerald-600"><CheckCircle2 size={12} /> Mapped</span>
+              <span className="flex items-center gap-1 text-[13px] font-medium text-emerald-600"><CheckCircle2 size={12} /> Mapped</span>
             ) : (
               <>
                 <Link2 size={12} className="text-slate-300" />
-                <select
-                  className="flex-1 rounded-lg border-0 bg-slate-100 px-2.5 py-1.5 text-[12px] text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/60"
+                <Select
+                  className="flex-1 rounded-lg border-0 bg-slate-100 px-2.5 py-1.5 text-[13px] text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/60"
                   defaultValue=""
                   onChange={(e) => e.target.value && mutation.mutate({ employeeId: e.target.value, code })}
                 >
@@ -443,7 +443,7 @@ function UnmatchedCodes({ branch, codes }) {
                   {(employees ?? []).map((emp) => (
                     <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} ({emp.employee_code})</option>
                   ))}
-                </select>
+                </Select>
               </>
             )}
           </div>

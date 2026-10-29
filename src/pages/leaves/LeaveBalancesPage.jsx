@@ -71,7 +71,7 @@ export default function LeaveBalancesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                <tr className="border-b border-slate-100 bg-slate-50/70 text-left text-[12px] font-semibold uppercase tracking-wide text-slate-500">
                   <th className="sticky left-0 z-10 bg-slate-50 px-4 py-3">Employee</th>
                   {types.map((t) => (
                     <th key={t.key} className="px-3 py-3 text-center">
@@ -101,7 +101,7 @@ export default function LeaveBalancesPage() {
                         <td key={t.key} className="px-2 py-1.5 text-center">
                           <button onClick={() => setLedger({ id: cell.balance_id, title: `${row.employee.name} · ${t.name}` })}
                             className="w-full rounded-lg px-2 py-1 hover:bg-blue-50">
-                            <span className={cn('block text-[15px] font-semibold tabular-nums', cell.balance < 0 ? 'text-rose-600' : 'text-slate-900')}>{num(cell.balance)}</span>
+                            <span className={cn('block text-[16px] font-semibold tabular-nums', cell.balance < 0 ? 'text-rose-600' : 'text-slate-900')}>{num(cell.balance)}</span>
                             <span className="block text-[10.5px] text-slate-400">
                               {num(cell.used)} used{cell.pending > 0 && <span className="text-amber-600"> · {num(cell.pending)} pend.</span>}
                             </span>

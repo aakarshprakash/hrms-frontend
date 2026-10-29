@@ -30,7 +30,7 @@ const SCOPE_LABELS = {
 
 function RoleBadge({ name, label }) {
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset',
+    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold ring-1 ring-inset',
       ROLE_TONES[name] ?? 'bg-indigo-50 text-indigo-700 ring-indigo-600/20')}>
       <Shield size={10} /> {label}
     </span>
@@ -279,8 +279,8 @@ function UserModal({ mode, user, roleOptions, branches, canPickAnyBranch, onClos
                 onClick={() => set({ user_type: key, role: '', employee_id: '' })}
                 className={cn('rounded-xl border-2 p-3 text-left transition-all',
                   form.user_type === key ? activeClass : 'border-slate-200 hover:border-slate-300')}>
-                <p className="text-[13px] font-bold text-slate-800">{label}</p>
-                <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{desc}</p>
+                <p className="text-[14px] font-bold text-slate-800">{label}</p>
+                <p className="mt-0.5 text-[12px] leading-snug text-slate-500">{desc}</p>
               </button>
             ))}
           </div>

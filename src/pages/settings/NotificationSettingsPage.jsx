@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { BellRing, Mail, MessageSquare, MessageCircle, Send, Save, Lock, CheckCircle2 } from 'lucide-react'
 import { notificationApi } from '@/lib/api/notifications'
@@ -81,7 +82,7 @@ function ChannelCard({ channel, config, locked }) {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><Icon size={19} /></div>
           <div>
             <p className="font-semibold text-slate-900">{meta.label}</p>
-            <p className="text-xs text-slate-500">{channel === 'email' ? 'From your platform mailer' : enabled ? (config.providers[channel][provider] ?? 'Choose a provider') : 'Off'}</p>
+            <p className="text-xs text-slate-500">{channel === 'email' ? (s.smtp_enabled ? 'Your own mail server' : 'From the platform mailer') : enabled ? (config.providers[channel][provider] ?? 'Choose a provider') : 'Off'}</p>
           </div>
         </div>
         {!locked && <Toggle checked={enabled} onChange={setEnabled} />}
@@ -94,7 +95,16 @@ function ChannelCard({ channel, config, locked }) {
       ) : (
         <div className="mt-4 flex-1 space-y-3">
           {channel === 'email' ? (
-            <p className="text-sm text-slate-500">Emails go out as “{companyName ?? 'Your organisation'} via Peoplenex”. Pick which events send email under <b>What gets sent</b>.</p>
+            <>
+              <p className="text-sm text-slate-500">
+                {s.smtp_enabled
+                  ? `Emails go out from ${s.smtp_credentials?.from_address?.value ?? 'your own address'} through your mail server.`
+                  : `Emails go out as “${companyName ?? 'Your organisation'} via Peoplenex”.`} Pick which events send email under <b>What gets sent</b>.
+              </p>
+              <Link to="/settings/mail" className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
+                {s.smtp_enabled ? 'Mail server settings' : 'Send from your own domain (SMTP)'} →
+              </Link>
+            </>
           ) : (
             <>
               <Field label="Provider">
@@ -168,7 +178,7 @@ function Events({ config }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-slate-100 bg-slate-50/70 text-left text-[12px] font-semibold uppercase tracking-wide text-slate-500">
               <th className="px-4 py-3">Event</th>
               {['in_app', 'email', 'sms', 'whatsapp'].map((c) => (
                 <th key={c} className={cn('px-3 py-3 text-center', !on(c) && 'text-slate-300')}>{c === 'in_app' ? 'In-app' : CHANNEL_META[c].label}</th>
@@ -197,7 +207,7 @@ function Events({ config }) {
 function GroupRows({ group, list, events, on, toggle, setField, needsTemplate }) {
   return (
     <>
-      <tr><td colSpan={5} className="bg-slate-50/40 px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{group}</td></tr>
+      <tr><td colSpan={5} className="bg-slate-50/40 px-4 pb-1 pt-3 text-[12px] font-semibold uppercase tracking-wide text-slate-400">{group}</td></tr>
       {list.map((e) => {
         const ev = events[e.key]
         const templated = ['sms', 'whatsapp'].filter((c) => ev.channels.includes(c) && on(c) && needsTemplate(c))
@@ -216,7 +226,7 @@ function GroupRows({ group, list, events, on, toggle, setField, needsTemplate })
                       <Input className="w-20 py-1.5 text-xs" value={ev.whatsapp_language ?? 'en'} onChange={(x) => setField(e.key, 'whatsapp_language', x.target.value)} />
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[12px] text-slate-500">
                     {CHANNEL_META[c].label} variables in order: {e.variables.map((v, i) => `{{${i + 1}}} ${v}`).join(' · ')}
                   </p>
                 </div>
@@ -266,14 +276,14 @@ function DeliveryLog() {
             empty={<EmptyState icon={Send} title="Nothing sent yet" description="Email, SMS and WhatsApp messages appear here with their delivery status." />}
             columns={[
               { key: 'when', label: 'When', render: (l) => <span className="whitespace-nowrap text-xs text-slate-500">{new Date(l.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span> },
-              { key: 'to', label: 'To', render: (l) => <div><p className="text-slate-800">{l.user?.name ?? '—'}</p><p className="font-mono text-[11px] text-slate-400">{l.recipient}</p></div> },
+              { key: 'to', label: 'To', render: (l) => <div><p className="text-slate-800">{l.user?.name ?? '—'}</p><p className="font-mono text-[12px] text-slate-400">{l.recipient}</p></div> },
               { key: 'channel', label: 'Channel', render: (l) => CHANNEL_META[l.channel]?.label ?? l.channel },
-              { key: 'event', label: 'Message', render: (l) => <div className="max-w-sm"><p className="truncate text-slate-700">{l.subject ?? l.body}</p><p className="text-[11px] text-slate-400">{l.event}{l.template && ` · template ${l.template}`}</p></div> },
+              { key: 'event', label: 'Message', render: (l) => <div className="max-w-sm"><p className="truncate text-slate-700">{l.subject ?? l.body}</p><p className="text-[12px] text-slate-400">{l.event}{l.template && ` · template ${l.template}`}</p></div> },
               { key: 'status', label: 'Status', render: (l) => (
                 <div>
                   <StatusPill tone={STATUS_TONE[l.status]} label={l.status[0].toUpperCase() + l.status.slice(1)} />
-                  {l.error && <p className="mt-1 max-w-[220px] text-[11px] text-rose-600">{l.error}</p>}
-                  {l.attempts > 1 && <p className="text-[11px] text-slate-400">{l.attempts} attempts</p>}
+                  {l.error && <p className="mt-1 max-w-[220px] text-[12px] text-rose-600">{l.error}</p>}
+                  {l.attempts > 1 && <p className="text-[12px] text-slate-400">{l.attempts} attempts</p>}
                 </div>
               ) },
             ]} />

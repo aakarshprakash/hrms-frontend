@@ -1,5 +1,6 @@
 import { AlertTriangle, Info } from 'lucide-react'
 import { money, days } from '@/lib/format'
+import { lopAmount } from '@/lib/payslip'
 
 /**
  * A payslip's figures, for either breakdown version the API may return:
@@ -11,23 +12,32 @@ export default function PayslipBreakdown({ row }) {
   const v2 = (b.version ?? 1) >= 2
   const att = b.attendance
 
+  // v2: earnings at their full rate; what attendance took off shows as Loss of pay under deductions.
+  const lop = lopAmount(b)
+  const lopDays = att?.lop_days ?? row.lop_days
   const earnings = v2
-    ? (b.earnings ?? []).map((e) => ({ name: e.name, rate: e.monthly, amount: e.earned, note: e.note }))
+    ? (b.earnings ?? []).map((e) => ({
+        name: e.name, note: e.note,
+        amount: e.kind === 'structure' && e.prorated && e.monthly !== null && e.monthly !== undefined ? e.monthly : e.earned,
+      }))
     : [
         ...(b.earnings ?? []).map((e) => ({ name: e.name, amount: e.amount, note: e.note })),
         ...(Number(b.ot_pay) > 0 ? [{ name: 'Overtime', amount: b.ot_pay }] : []),
       ]
 
   const deductions = v2
-    ? (b.deductions ?? []).map((d) => ({ name: d.name, amount: d.amount, note: d.note }))
+    ? [
+        ...(lop > 0 ? [{ name: Number(lopDays) > 0 ? `Loss of pay (${days(lopDays)} day${Number(lopDays) === 1 ? '' : 's'})` : 'Loss of pay (unpaid days)', amount: lop }] : []),
+        ...(b.deductions ?? []).map((d) => ({ name: d.name, amount: d.amount, note: d.note })),
+      ]
     : [
         ...(b.deductions ?? []).map((d) => ({ name: d.name, amount: d.amount, note: d.note })),
         ...(b.statutory_deductions ?? []).map((s) => ({ name: { PF: 'Provident Fund', ESI: 'ESI', TAX: 'Income Tax (TDS)' }[s.rule_type] ?? s.rule_type, amount: s.amount })),
         ...(Number(b.lop?.amount) > 0 ? [{ name: `Loss of pay (${b.lop.days} days)`, amount: b.lop.amount }] : []),
       ]
 
-  const gross = row.gross_pay
-  const totalDeductions = row.total_deductions
+  const gross = Number(row.gross_pay) + lop
+  const totalDeductions = Number(row.total_deductions) + lop
   const net = row.net_pay
   const warnings = row.warnings ?? b.warnings ?? []
   const tds = b.statutory?.tds
@@ -51,7 +61,7 @@ export default function PayslipBreakdown({ row }) {
             ['Late marks', att?.late_marks],
           ].map(([label, value]) => (
             <div key={label} className="rounded-xl bg-slate-50 px-3 py-2 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
               <p className="text-base font-bold text-slate-800">{days(value)}</p>
             </div>
           ))}
@@ -59,7 +69,7 @@ export default function PayslipBreakdown({ row }) {
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <LineTable title="Earnings" rows={earnings} total={gross} totalLabel="Gross earnings" tone="emerald" showRate={v2} />
+        <LineTable title="Earnings" rows={earnings} total={gross} totalLabel="Gross earnings" tone="emerald" />
         <LineTable title="Deductions" rows={deductions} total={totalDeductions} totalLabel="Total deductions" tone="rose" />
       </div>
 
@@ -89,7 +99,7 @@ function LineTable({ title, rows, total, totalLabel, tone, showRate }) {
     <div className="overflow-hidden rounded-xl border border-slate-200">
       <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-2">
         <span className={`text-xs font-semibold uppercase tracking-wide ${tones[tone]}`}>{title}</span>
-        {showRate && <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Rate · Earned</span>}
+        {showRate && <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Rate · Earned</span>}
       </div>
       <div className="divide-y divide-slate-50">
         {rows.length === 0 && <p className="px-4 py-3 text-sm text-slate-400">None</p>}
@@ -97,7 +107,7 @@ function LineTable({ title, rows, total, totalLabel, tone, showRate }) {
           <div key={`${r.name}-${i}`} className="flex items-start justify-between gap-3 px-4 py-2 text-sm">
             <div className="min-w-0">
               <p className="text-slate-700">{r.name}</p>
-              {r.note && <p className="text-[11px] text-slate-400">{r.note}</p>}
+              {r.note && <p className="text-[12px] text-slate-400">{r.note}</p>}
             </div>
             <div className="text-right">
               {showRate && r.rate !== null && r.rate !== undefined && Number(r.rate) !== Number(r.amount) && (

@@ -164,12 +164,12 @@ export default function RosterPage() {
             <table className="w-full border-separate border-spacing-0 text-xs">
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-10 min-w-[200px] border-b border-slate-100 bg-white px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">Employee</th>
+                  <th className="sticky left-0 z-10 min-w-[200px] border-b border-slate-100 bg-white px-4 py-2 text-left text-[12px] font-semibold uppercase tracking-wide text-slate-500">Employee</th>
                   {data.days.map((d) => {
                     const dt = new Date(`${d}T00:00:00`)
                     return (
                       <th key={d} className={cn('min-w-[88px] border-b border-slate-100 px-1 py-2 text-center font-semibold', d === today ? 'text-blue-600' : 'text-slate-500')}>
-                        <div className="text-[10px] uppercase">{WEEKDAYS[dt.getDay()]}</div>
+                        <div className="text-[11px] uppercase">{WEEKDAYS[dt.getDay()]}</div>
                         <div className="text-sm">{dt.getDate()}</div>
                       </th>
                     )
@@ -182,7 +182,7 @@ export default function RosterPage() {
                     <td className="sticky left-0 z-10 border-b border-slate-50 bg-white px-4 py-2 group-hover:bg-slate-50">
                       <button type="button" className="text-left" onClick={() => editable && setWeeklyOffFor(row.employee)}>
                         <p className="font-medium text-slate-800">{row.employee.name}</p>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-[12px] text-slate-400">
                           {row.employee.designation ?? row.employee.department}
                           {' · off '}{row.employee.weekly_off_days ? row.employee.weekly_off_days.map((d) => WEEKDAYS[d]).join('/') || 'none' : 'branch default'}
                         </p>
@@ -194,7 +194,7 @@ export default function RosterPage() {
                       return (
                         <td key={d} className="border-b border-slate-50 p-1 group-hover:bg-slate-50/60">
                           <button type="button" title={v.title} onClick={() => paint(row.employee.id, d)}
-                            className={cn('relative flex h-10 w-full items-center justify-center rounded-lg border px-1 text-[11px] font-medium transition-all',
+                            className={cn('relative flex h-10 w-full items-center justify-center rounded-lg border px-1 text-[12px] font-medium transition-all',
                               v.style ?? 'border-transparent text-white',
                               v.pending && 'ring-2 ring-blue-500 ring-offset-1',
                               v.rostered && 'border-slate-800/30',

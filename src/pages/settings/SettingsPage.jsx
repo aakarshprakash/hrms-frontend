@@ -104,8 +104,8 @@ function SetupChecklist({ steps }) {
     <Card padded={false} className="mb-6 overflow-hidden">
       <div className="flex flex-col gap-4 bg-gradient-to-r from-blue-50 to-white px-5 py-4 sm:flex-row sm:items-center">
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold text-slate-900">Finish setting up — {done} of {steps.length} done</p>
-          <p className="mt-0.5 text-[13px] text-slate-500">These drive attendance, leave and payroll. Industry templates can fill most of them in one go.</p>
+          <p className="text-[16px] font-semibold text-slate-900">Finish setting up — {done} of {steps.length} done</p>
+          <p className="mt-0.5 text-[14px] text-slate-500">These drive attendance, leave and payroll. Industry templates can fill most of them in one go.</p>
           <div className="mt-3 h-2 max-w-md overflow-hidden rounded-full bg-blue-100">
             <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${pct}%` }} />
           </div>
@@ -159,12 +159,12 @@ export default function SettingsPage() {
                       <Icon size={17} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-1 text-[13px] font-semibold text-slate-900 group-hover:text-blue-700">
+                      <p className="flex items-center gap-1 text-[14px] font-semibold text-slate-900 group-hover:text-blue-700">
                         {item.title}<ChevronRight size={14} className="text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-500" />
                       </p>
                       <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{item.text}</p>
                       {item.meta && (
-                        <p className={cn('mt-1.5 text-[11px] font-medium', missing ? 'text-amber-700' : 'text-slate-400')}>
+                        <p className={cn('mt-1.5 text-[12px] font-medium', missing ? 'text-amber-700' : 'text-slate-400')}>
                           {missing ? 'Not set up yet' : item.meta}
                         </p>
                       )}

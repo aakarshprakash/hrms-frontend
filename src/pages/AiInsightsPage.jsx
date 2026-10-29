@@ -28,7 +28,7 @@ function ShareList({ items }) {
     <ul className="space-y-3 p-5">
       {rows.map((r, i) => (
         <li key={r.label}>
-          <div className="mb-1 flex items-center justify-between text-[13px]">
+          <div className="mb-1 flex items-center justify-between text-[14px]">
             <span className="font-medium capitalize text-slate-700">{r.label}</span>
             <span className="tabular-nums text-slate-900">{r.value} <span className="text-slate-400">· {total ? Math.round((r.value / total) * 100) : 0}%</span></span>
           </div>
@@ -78,9 +78,9 @@ export default function AiInsightsPage() {
                     <li key={i} className="flex items-start gap-3 px-5 py-3.5">
                       <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset', meta.tile)}><Icon size={16} /></div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-semibold text-slate-900">{ins.title}</p>
-                        <p className="mt-0.5 text-[13px] text-slate-600">{ins.detail}</p>
-                        <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-slate-400">{meta.label}</p>
+                        <p className="text-[14px] font-semibold text-slate-900">{ins.title}</p>
+                        <p className="mt-0.5 text-[14px] text-slate-600">{ins.detail}</p>
+                        <p className="mt-1 text-[12px] font-medium uppercase tracking-wider text-slate-400">{meta.label}</p>
                       </div>
                       {ins.link && (
                         <Link to={ins.link} className="inline-flex shrink-0 items-center gap-1 self-center rounded-lg px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50">

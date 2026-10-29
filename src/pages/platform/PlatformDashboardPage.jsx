@@ -46,7 +46,7 @@ export default function PlatformDashboardPage() {
             {c.name.slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="font-medium text-slate-900 truncate">{c.name} {c.is_demo && <span className="ml-1 rounded bg-amber-100 px-1.5 text-[10px] font-semibold text-amber-700">DEMO</span>}</p>
+            <p className="font-medium text-slate-900 truncate">{c.name} {c.is_demo && <span className="ml-1 rounded bg-amber-100 px-1.5 text-[11px] font-semibold text-amber-700">DEMO</span>}</p>
             <p className="text-xs text-slate-400 truncate">{c.slug} · {c.email ?? 'no email'}</p>
           </div>
         </div>

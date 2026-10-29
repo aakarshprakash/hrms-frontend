@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Clock, CalendarDays, IndianRupee, Award, Building, Settings, Sparkles, ShieldCheck,
-  History, Globe2, Inbox, BellRing, CreditCard, Layers, KeyRound, Wallet, CalendarClock, Megaphone, LifeBuoy,
+  History, Globe2, Inbox, BellRing, CreditCard, Layers, KeyRound, Wallet, CalendarClock, Megaphone, LifeBuoy, Mail,
 } from 'lucide-react'
 
 /*
@@ -25,12 +25,13 @@ export const SECTIONS = [
     items: [
       { to: '/employees', icon: Users, label: 'Employees' },
       {
-        label: 'Organisation', icon: Building, group: true, prefix: ['/departments', '/designations', '/settings/branches'],
+        label: 'Organisation', icon: Building, group: true, prefix: ['/departments', '/designations', '/work-locations', '/settings/branches'],
         perms: ['departments.manage', 'settings.manage'],
         children: [
           { to: '/settings/branches', label: 'Branches', perms: ['settings.manage'] },
           { to: '/departments', label: 'Departments', perms: ['departments.manage'] },
           { to: '/designations', label: 'Designations', perms: ['departments.manage'] },
+          { to: '/work-locations', label: 'Work Locations', perms: ['departments.manage'] },
         ],
       },
     ],
@@ -44,6 +45,7 @@ export const SECTIONS = [
           { to: '/attendance', label: 'My Attendance' },
           { to: '/attendance/manage', label: 'Team Attendance', perms: ['attendance.view', 'attendance.manage'] },
           { to: '/attendance/reports', label: 'Reports', perms: ['attendance.view'] },
+          { to: '/attendance/coverage', label: 'Team Coverage', perms: ['attendance.view', 'attendance.manage'] },
           { to: '/attendance/regularizations', label: 'Regularization' },
           { to: '/overtime', label: 'Overtime' },
           { to: '/attendance/exceptions', label: 'Exceptions', perms: ['attendance.view'] },
@@ -105,6 +107,7 @@ export const SECTIONS = [
       { to: '/settings/users', icon: ShieldCheck, label: 'Users & Access', perms: ['users.manage'] },
       { to: '/settings/roles', icon: KeyRound, label: 'Roles', perms: ['roles.manage'] },
       { to: '/settings/notifications', icon: BellRing, label: 'Notifications', perms: ['notifications.manage'] },
+      { to: '/settings/mail', icon: Mail, label: 'Mail Server', perms: ['notifications.manage'] },
       { to: '/settings/audit', icon: History, label: 'Audit Trail', perms: ['audit.view'], feature: 'audit_log' },
       { to: '/settings/billing', icon: CreditCard, label: 'Plan & Billing', perms: ['billing.manage'] },
       { to: '/settings', icon: Settings, label: 'Settings', perms: ['settings.manage'], exact: true },
@@ -118,6 +121,7 @@ export const PLATFORM_SECTION = {
     { to: '/platform', icon: Globe2, label: 'Organisations', exact: true },
     { to: '/platform/billing', icon: Wallet, label: 'Billing & Revenue' },
     { to: '/platform/plans', icon: Layers, label: 'Plans' },
+    { to: '/platform/mail', icon: Mail, label: 'Mail Server' },
   ],
 }
 

@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
       <AuthLayout title="Check your inbox" footer={back}>
         <div className="rounded-xl border border-slate-200 bg-white p-5 text-center">
           <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-600"><MailCheck size={20} /></div>
-          <p className="text-[13px] text-slate-600">If an account exists for <strong className="text-slate-900">{sentTo}</strong>, a password reset link is on its way. It expires in 60 minutes.</p>
+          <p className="text-[14px] text-slate-600">If an account exists for <strong className="text-slate-900">{sentTo}</strong>, a password reset link is on its way. It expires in 60 minutes.</p>
         </div>
       </AuthLayout>
     )

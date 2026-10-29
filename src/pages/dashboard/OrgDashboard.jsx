@@ -61,7 +61,7 @@ export default function OrgDashboard() {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[13px] font-medium text-slate-500">{today}{branch ? ` · ${branch.name}` : ''}</p>
+          <p className="text-[14px] font-medium text-slate-500">{today}{branch ? ` · ${branch.name}` : ''}</p>
           <h1 className="mt-0.5 text-2xl font-semibold tracking-tight text-slate-900">{greeting()}, {user?.name?.split(' ')[0] ?? 'there'}</h1>
         </div>
         <div className="flex gap-2">
@@ -144,15 +144,15 @@ function InsightStrip({ insights }) {
         <div className="flex shrink-0 items-center gap-2.5 md:w-44">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 text-white"><Sparkles size={15} /></div>
           <div>
-            <p className="text-[13px] font-semibold text-slate-900">AI insights</p>
+            <p className="text-[14px] font-semibold text-slate-900">AI insights</p>
             <Link to="/insights" className="text-xs text-blue-600 hover:underline">View all</Link>
           </div>
         </div>
         <div className="grid flex-1 gap-2 md:grid-cols-3">
           {insights.map((ins, i) => (
             <Link key={i} to={ins.link ?? '/insights'} className="rounded-lg border border-slate-200 px-3 py-2 hover:border-slate-300 hover:bg-slate-50">
-              <span className={cn('rounded px-1.5 py-px text-[10px] font-semibold uppercase', tone[ins.severity] ?? tone.info)}>{ins.severity}</span>
-              <p className="mt-1 line-clamp-1 text-[13px] font-medium text-slate-800">{ins.title}</p>
+              <span className={cn('rounded px-1.5 py-px text-[11px] font-semibold uppercase', tone[ins.severity] ?? tone.info)}>{ins.severity}</span>
+              <p className="mt-1 line-clamp-1 text-[14px] font-medium text-slate-800">{ins.title}</p>
             </Link>
           ))}
         </div>
@@ -180,18 +180,18 @@ function TodayCard({ today }) {
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
             <p className="text-2xl font-semibold tabular-nums text-slate-900">{today.rate === null ? '—' : `${Math.round(today.rate)}%`}</p>
-            <p className="text-[11px] text-slate-500">present</p>
+            <p className="text-[12px] text-slate-500">present</p>
           </div>
         </div>
         <ul className="flex-1 space-y-2">
           {TODAY_SEGMENTS.map((s) => (
-            <li key={s.key} className="flex items-center gap-2 text-[13px]">
+            <li key={s.key} className="flex items-center gap-2 text-[14px]">
               <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
               <span className="flex-1 text-slate-600">{s.label}</span>
               <span className="font-semibold tabular-nums text-slate-900">{today[s.key]}</span>
             </li>
           ))}
-          <li className="flex items-center gap-2 border-t border-slate-100 pt-2 text-[13px]">
+          <li className="flex items-center gap-2 border-t border-slate-100 pt-2 text-[14px]">
             <span className="flex-1 text-slate-500">Total</span>
             <span className="font-semibold tabular-nums text-slate-900">{total}</span>
           </li>
@@ -253,13 +253,13 @@ function OutTodayCard({ people, total }) {
             <li key={p.id} className="flex items-center gap-3 px-5 py-2.5">
               <Avatar name={p.name} size="sm" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium text-slate-800">{p.name}</p>
+                <p className="truncate text-[14px] font-medium text-slate-800">{p.name}</p>
                 <p className="flex items-center gap-1.5 truncate text-xs text-slate-500">
                   <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: p.color || '#8b5cf6' }} />
                   {p.type}{p.half_day_session ? ' · half day' : ''}
                 </p>
               </div>
-              <span className="shrink-0 text-[11px] text-slate-400">Back {weekday(p.back_on)}</span>
+              <span className="shrink-0 text-[12px] text-slate-400">Back {weekday(p.back_on)}</span>
             </li>
           ))}
         </ul>
@@ -286,7 +286,7 @@ function ApprovalsCard({ approvals }) {
             <li key={r.key}>
               <Link to="/approvals" className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50">
                 <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg', r.color)}><Icon size={15} /></span>
-                <span className="flex-1 text-[13px] font-medium text-slate-700">{r.label}</span>
+                <span className="flex-1 text-[14px] font-medium text-slate-700">{r.label}</span>
                 <span className={cn('min-w-[28px] rounded-full px-2 py-0.5 text-center text-xs font-semibold', approvals[r.key] ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-500')}>
                   {approvals[r.key]}
                 </span>
@@ -328,12 +328,12 @@ function ComingUpCard({ holidays, celebrations }) {
               <li key={i} className="flex items-center gap-3 px-5 py-2.5">
                 <span className={cn('flex h-8 w-8 items-center justify-center rounded-lg', cls)}><Icon size={15} /></span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-slate-800">{it.title}</p>
+                  <p className="truncate text-[14px] font-medium text-slate-800">{it.title}</p>
                   <p className="text-xs text-slate-500">{it.sub}</p>
                 </div>
                 <span className="shrink-0 text-right">
-                  <span className="block text-[13px] font-semibold text-slate-800">{d.getDate()} {d.toLocaleDateString('en-IN', { month: 'short' })}</span>
-                  <span className="block text-[11px] text-slate-400">{d.toLocaleDateString('en-IN', { weekday: 'short' })}</span>
+                  <span className="block text-[14px] font-semibold text-slate-800">{d.getDate()} {d.toLocaleDateString('en-IN', { month: 'short' })}</span>
+                  <span className="block text-[12px] text-slate-400">{d.toLocaleDateString('en-IN', { weekday: 'short' })}</span>
                 </span>
               </li>
             )
@@ -354,7 +354,7 @@ function DepartmentsCard({ departments, total }) {
       <ul className="space-y-3 p-5">
         {foldOther(departments).map((d, i) => (
           <li key={d.name}>
-            <div className="mb-1 flex items-center justify-between text-[13px]">
+            <div className="mb-1 flex items-center justify-between text-[14px]">
               <span className="font-medium text-slate-700">{d.name}</span>
               <span className="tabular-nums text-slate-500">{d.value} <span className="text-slate-400">· {total ? Math.round(d.value / total * 100) : 0}%</span></span>
             </div>
@@ -374,7 +374,7 @@ function BranchesCard({ branches, total }) {
       <CardHeader title="Headcount by branch" icon={Building2} subtitle={`${branches.length} location${branches.length === 1 ? '' : 's'}`} />
       <ul className="divide-y divide-slate-100">
         {branches.map((b) => (
-          <li key={b.name} className="flex items-center gap-3 px-5 py-2.5 text-[13px]">
+          <li key={b.name} className="flex items-center gap-3 px-5 py-2.5 text-[14px]">
             <span className="flex-1 truncate font-medium text-slate-700">{b.name}</span>
             <span className="w-24 overflow-hidden rounded-full bg-slate-100"><span className="block h-1.5 rounded-full bg-blue-500" style={{ width: `${total ? (b.value / total) * 100 : 0}%` }} /></span>
             <span className="w-8 text-right tabular-nums font-semibold text-slate-900">{b.value}</span>
@@ -418,10 +418,10 @@ function JoinersCard({ joiners }) {
               <Link to={`/employees/${j.id}`} className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50">
                 <Avatar name={j.name} size="sm" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-slate-800">{j.name}</p>
+                  <p className="truncate text-[14px] font-medium text-slate-800">{j.name}</p>
                   <p className="truncate text-xs text-slate-500">{[j.designation, j.department].filter(Boolean).join(' · ')}</p>
                 </div>
-                <span className="shrink-0 text-[11px] text-slate-400">{j.date_of_joining ? shortDay(j.date_of_joining) : ''}</span>
+                <span className="shrink-0 text-[12px] text-slate-400">{j.date_of_joining ? shortDay(j.date_of_joining) : ''}</span>
               </Link>
             </li>
           ))}

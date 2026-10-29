@@ -53,7 +53,7 @@ function DesignationModal({ initial, branches, departments, defaultBranch, onSav
               <button key={l} type="button" onClick={() => setLevel(Number(l))}
                 className={cn('rounded-lg border py-1.5 text-center text-xs font-semibold transition-colors',
                   level === Number(l) ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:text-blue-700')}>
-                L{l}<span className="block text-[10px] font-normal opacity-80">{label}</span>
+                L{l}<span className="block text-[11px] font-normal opacity-80">{label}</span>
               </button>
             ))}
           </div>
@@ -198,7 +198,7 @@ export default function DesignationsPage() {
             <Button variant="danger" icon={Trash2} loading={deleteMut.isPending} onClick={() => deleteMut.mutate(deleting.id)}>Delete</Button>
           </>}>
           <ErrorBanner error={deleteMut.error} className="mb-3" />
-          <p className="text-[13px] text-slate-600">
+          <p className="text-[14px] text-slate-600">
             Delete <strong className="text-slate-900">{deleting.title}</strong>
             {deleting.department && ` in ${deleting.department.name}`}?
             {deleting.employees_count > 0 && ` ${deleting.employees_count} active ${deleting.employees_count === 1 ? 'person holds' : 'people hold'} this title and will be unlinked.`}

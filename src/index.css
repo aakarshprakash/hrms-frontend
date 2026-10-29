@@ -7,6 +7,14 @@
   --color-brand-gray: #f2f4f7;
   --color-brand-slate: #64748b;
   --color-canvas: #f6f7fb;
+
+  /* One step larger than Tailwind's defaults (12 / 14 / 16px) for easier reading. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.25rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.375rem;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.625rem;
 }
 
 :root {

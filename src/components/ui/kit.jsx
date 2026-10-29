@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { X, Inbox, AlertCircle, ChevronLeft, ChevronRight, Lock, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/Spinner'
+import { SearchSelect } from '@/components/ui/SearchSelect'
 
 /*
  * Shared building blocks so every screen reads as one product:
@@ -32,7 +33,7 @@ export function PageHeader({ title, subtitle, icon: Icon, actions, children, bre
           )}
           <div className="min-w-0">
             <h1 className="truncate text-[22px] font-semibold leading-7 tracking-tight text-slate-900">{title}</h1>
-            {subtitle && <p className="mt-0.5 text-[13px] text-slate-500">{subtitle}</p>}
+            {subtitle && <p className="mt-0.5 text-[14px] text-slate-500">{subtitle}</p>}
             {children}
           </div>
         </div>
@@ -60,7 +61,7 @@ export function CardHeader({ title, subtitle, icon: Icon, actions, className }) 
           </div>
         )}
         <div className="min-w-0">
-          <h3 className="truncate text-[15px] font-semibold text-slate-900">{title}</h3>
+          <h3 className="truncate text-[16px] font-semibold text-slate-900">{title}</h3>
           {subtitle && <p className="mt-0.5 truncate text-xs text-slate-500">{subtitle}</p>}
         </div>
       </div>
@@ -79,7 +80,7 @@ const BUTTON_VARIANTS = {
 }
 const BUTTON_SIZES = {
   sm: 'h-8 px-2.5 text-xs gap-1.5',
-  md: 'h-9 px-3.5 text-[13px] gap-2',
+  md: 'h-9 px-3.5 text-[14px] gap-2',
   lg: 'h-10 px-4 text-sm gap-2',
 }
 
@@ -131,7 +132,7 @@ export function Modal({ open = true, title, subtitle, onClose, children, footer,
         <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
           <div>
             <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-            {subtitle && <p className="mt-0.5 text-[13px] text-slate-500">{subtitle}</p>}
+            {subtitle && <p className="mt-0.5 text-[14px] text-slate-500">{subtitle}</p>}
           </div>
           <IconButton icon={X} label="Close" onClick={onClose} />
         </div>
@@ -143,13 +144,13 @@ export function Modal({ open = true, title, subtitle, onClose, children, footer,
 }
 
 export const fieldClass =
-  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-900 shadow-xs placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15 disabled:bg-slate-50 disabled:text-slate-500'
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[14px] text-slate-900 shadow-xs placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15 disabled:bg-slate-50 disabled:text-slate-500'
 
 export function Field({ label, required, hint, error, className, children }) {
   return (
     <div className={className}>
       {label && (
-        <label className="mb-1.5 block text-[13px] font-medium text-slate-700">
+        <label className="mb-1.5 block text-[14px] font-medium text-slate-700">
           {label}{required && <span className="ml-0.5 text-rose-500">*</span>}
         </label>
       )}
@@ -163,8 +164,9 @@ export function Input({ className, ...props }) {
   return <input className={cn(fieldClass, 'h-9', className)} {...props} />
 }
 
-export function Select({ className, children, ...props }) {
-  return <select className={cn(fieldClass, 'h-9 pr-8', className)} {...props}>{children}</select>
+/** Every dropdown: searchable, keyboard-friendly, same props and <option> children as a <select>. */
+export function Select(props) {
+  return <SearchSelect {...props} />
 }
 
 export function Textarea({ className, ...props }) {
@@ -182,7 +184,7 @@ export function Toggle({ checked, onChange, label, description, disabled }) {
       </button>
       {(label || description) && (
         <span>
-          {label && <span className="block text-[13px] font-medium text-slate-800">{label}</span>}
+          {label && <span className="block text-[14px] font-medium text-slate-800">{label}</span>}
           {description && <span className="block text-xs text-slate-500">{description}</span>}
         </span>
       )}
@@ -212,7 +214,7 @@ const STATUS_TONES = {
 export function StatusPill({ status, label, tone, className, dot = true }) {
   const t = PILL_TONES[tone ?? STATUS_TONES[status] ?? 'slate']
   return (
-    <span className={cn('inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset', t, className)}>
+    <span className={cn('inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-0.5 text-[12px] font-medium ring-1 ring-inset', t, className)}>
       {dot && <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />}
       {label ?? String(status ?? '').replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())}
     </span>
@@ -226,7 +228,7 @@ export function EmptyState({ icon: Icon = Inbox, title, description, action }) {
         <Icon size={20} />
       </div>
       <p className="text-sm font-semibold text-slate-800">{title}</p>
-      {description && <p className="mt-1 max-w-sm text-[13px] text-slate-500">{description}</p>}
+      {description && <p className="mt-1 max-w-sm text-[14px] text-slate-500">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   )
@@ -238,7 +240,7 @@ export function ErrorBanner({ error, message, className }) {
   const text = message ?? data?.message ?? 'Something went wrong. Please try again.'
   const details = data?.errors ? Object.values(data.errors).flat() : []
   return (
-    <div className={cn('flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[13px] text-rose-700', className)}>
+    <div className={cn('flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[14px] text-rose-700', className)}>
       <AlertCircle size={16} className="mt-0.5 shrink-0" />
       <div>
         <p>{text}</p>
@@ -265,7 +267,7 @@ export function StatCard({ label, value, icon: Icon, tone = 'blue', hint, trend,
   const body = (
     <>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[13px] font-medium text-slate-500">{label}</p>
+        <p className="text-[14px] font-medium text-slate-500">{label}</p>
         {Icon && <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', STAT_TONES[tone])}><Icon size={17} /></div>}
       </div>
       <p className="mt-1 text-[26px] font-semibold leading-8 tracking-tight text-slate-900 tabular-nums">{value ?? '—'}</p>
@@ -300,9 +302,9 @@ export function Tabs({ tabs, value, onChange, className, variant = 'underline' }
       <div className={cn('flex w-fit max-w-full overflow-x-auto rounded-lg bg-slate-100 p-0.5', className)}>
         {tabs.map((tab) => (
           <button key={tab.key} type="button" onClick={() => onChange(tab.key)}
-            className={cn('whitespace-nowrap rounded-md px-3 py-1.5 text-[13px] font-medium transition-all',
+            className={cn('whitespace-nowrap rounded-md px-3 py-1.5 text-[14px] font-medium transition-all',
               value === tab.key ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700')}>
-            {tab.label}{tab.count !== undefined && <span className="ml-1.5 text-[11px] text-slate-400">{tab.count}</span>}
+            {tab.label}{tab.count !== undefined && <span className="ml-1.5 text-[12px] text-slate-400">{tab.count}</span>}
           </button>
         ))}
       </div>
@@ -314,11 +316,11 @@ export function Tabs({ tabs, value, onChange, className, variant = 'underline' }
         const active = value === tab.key
         return (
           <button key={tab.key} type="button" onClick={() => onChange(tab.key)}
-            className={cn('-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-0.5 pb-2.5 pt-1 text-[13px] font-medium transition-colors',
+            className={cn('-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-0.5 pb-2.5 pt-1 text-[14px] font-medium transition-colors',
               active ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800')}>
             {tab.label}
             {tab.count !== undefined && (
-              <span className={cn('rounded-full px-1.5 py-px text-[11px] font-semibold', active ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500')}>{tab.count}</span>
+              <span className={cn('rounded-full px-1.5 py-px text-[12px] font-semibold', active ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500')}>{tab.count}</span>
             )}
           </button>
         )
@@ -330,7 +332,7 @@ export function Tabs({ tabs, value, onChange, className, variant = 'underline' }
 export function Pagination({ meta, onPage }) {
   if (!meta || !meta.last_page || meta.last_page <= 1) return null
   return (
-    <div className="flex items-center justify-between px-1 pt-4 text-[13px] text-slate-500">
+    <div className="flex items-center justify-between px-1 pt-4 text-[14px] text-slate-500">
       <span>Page {meta.current_page} of {meta.last_page} · {meta.total} total</span>
       <div className="flex gap-1.5">
         <Button variant="secondary" size="sm" icon={ChevronLeft} disabled={meta.current_page <= 1} onClick={() => onPage(meta.current_page - 1)}>Prev</Button>
@@ -345,9 +347,9 @@ export function Pagination({ meta, onPage }) {
 export function Table({ columns, rows, rowKey = 'id', empty, onRowClick, className }) {
   return (
     <div className={cn('overflow-x-auto', className)}>
-      <table className="w-full text-[13px]">
+      <table className="w-full text-[14px]">
         <thead>
-          <tr className="border-b border-slate-200/80 bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <tr className="border-b border-slate-200/80 bg-slate-50/80 text-left text-[12px] font-semibold uppercase tracking-wider text-slate-500">
             {columns.map((c) => <th key={c.key} className={cn('whitespace-nowrap px-4 py-2.5', c.className, c.align === 'right' && 'text-right')}>{c.label}</th>)}
           </tr>
         </thead>
@@ -377,10 +379,10 @@ export function UpgradeNotice({ feature, title = 'Not included in your plan', de
     <Card className="mx-auto max-w-lg text-center">
       <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 ring-8 ring-amber-50/50"><Lock size={20} /></div>
       <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-      <p className="mt-1 text-[13px] text-slate-500">
+      <p className="mt-1 text-[14px] text-slate-500">
         {description ?? `The ${feature} module isn't part of your current subscription. Upgrade your plan to unlock it.`}
       </p>
-      <Link to="/settings/billing" className="mt-4 inline-flex h-9 items-center rounded-lg bg-blue-600 px-4 text-[13px] font-medium text-white hover:bg-blue-700">View plans</Link>
+      <Link to="/settings/billing" className="mt-4 inline-flex h-9 items-center rounded-lg bg-blue-600 px-4 text-[14px] font-medium text-white hover:bg-blue-700">View plans</Link>
     </Card>
   )
 }
@@ -391,7 +393,7 @@ const AVATAR_TONES = [
 ]
 
 export function Avatar({ name, src, size = 'md', className }) {
-  const sizes = { xs: 'h-6 w-6 text-[10px]', sm: 'h-7 w-7 text-[10px]', md: 'h-9 w-9 text-xs', lg: 'h-12 w-12 text-sm', xl: 'h-16 w-16 text-lg' }
+  const sizes = { xs: 'h-6 w-6 text-[11px]', sm: 'h-7 w-7 text-[11px]', md: 'h-9 w-9 text-xs', lg: 'h-12 w-12 text-sm', xl: 'h-16 w-16 text-lg' }
   const initials = (name ?? '?').split(' ').filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
   if (src) return <img src={src} alt={name} className={cn('shrink-0 rounded-full object-cover', sizes[size], className)} />
   let h = 0

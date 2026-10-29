@@ -104,7 +104,7 @@ function InvoiceList({ companyId, invoices }) {
       <CardHeader title="Invoices" icon={Receipt} />
       <Table rows={invoices} empty={<EmptyState title="No invoices" />}
         columns={[
-          { key: 'number', label: 'Invoice', render: (i) => <div><p className="font-mono text-xs font-semibold">{i.number}</p><p className="text-[11px] text-slate-400">{dateLabel(i.period_start)} – {dateLabel(i.period_end)}</p></div> },
+          { key: 'number', label: 'Invoice', render: (i) => <div><p className="font-mono text-xs font-semibold">{i.number}</p><p className="text-[12px] text-slate-400">{dateLabel(i.period_start)} – {dateLabel(i.period_end)}</p></div> },
           { key: 'total', label: 'Total', align: 'right', render: (i) => money(i.total, { paise: true }) },
           { key: 'status', label: 'Status', render: (i) => <StatusPill status={i.status === 'issued' ? 'pending' : i.status} label={i.status === 'issued' ? `Due ${dateLabel(i.due_on)}` : undefined} /> },
           { key: 'actions', label: '', align: 'right', render: (i) => i.status === 'issued' && (

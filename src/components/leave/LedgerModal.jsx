@@ -97,7 +97,7 @@ export function LedgerModal({ balanceId, title, canAdjust = false, onClose }) {
             <div className="overflow-hidden rounded-xl border border-slate-200">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <tr className="bg-slate-50 text-left text-[12px] font-semibold uppercase tracking-wide text-slate-500">
                     <th className="px-4 py-2.5">Date</th>
                     <th className="px-4 py-2.5">Entry</th>
                     <th className="px-4 py-2.5 text-right">Days</th>

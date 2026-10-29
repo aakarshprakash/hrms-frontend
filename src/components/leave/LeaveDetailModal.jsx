@@ -90,24 +90,24 @@ export function LeaveDetailModal({ leaveId, onClose }) {
 
           <div className="grid gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Type</p>
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Type</p>
               <LeaveTypeChip type={leave.leave_type} className="mt-1" />
               {leave.leave_type && !leave.leave_type.paid && <p className="mt-0.5 text-xs text-rose-600">Unpaid</p>}
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Dates</p>
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Dates</p>
               <p className="mt-1 text-sm font-medium text-slate-800">{leaveRange(leave, { year: true })}</p>
               <p className="text-xs text-slate-500">{dayCount(leave.days)}{leave.half_day_session && ` · ${SESSION_LABELS[leave.half_day_session]}`}</p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Status</p>
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Status</p>
               <StatusPill status={leave.status} className="mt-1.5" />
             </div>
           </div>
 
           {leave.reason && (
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Reason</p>
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-slate-400">Reason</p>
               <p className="mt-1 whitespace-pre-line text-sm text-slate-700">{leave.reason}</p>
             </div>
           )}
@@ -117,7 +117,7 @@ export function LeaveDetailModal({ leaveId, onClose }) {
           )}
 
           <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Approval trail</p>
+            <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-slate-400">Approval trail</p>
             <ol className="relative space-y-4 border-l border-slate-200 pl-6">
               <li className="relative">
                 <span className="absolute -left-[34px] flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white"><Send size={12} /></span>

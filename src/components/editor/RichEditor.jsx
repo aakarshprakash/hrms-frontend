@@ -130,7 +130,7 @@ export function RichEditor({ value, onChange, tokens = [], placeholder = 'Start 
                     <div className="max-h-72 overflow-y-auto">
                       {tokens.map((group) => (
                         <div key={group.label}>
-                          <div className="px-3 py-1.5 bg-slate-50 text-[10px] font-semibold text-slate-500 uppercase tracking-wide sticky top-0">
+                          <div className="px-3 py-1.5 bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wide sticky top-0">
                             {group.label}
                           </div>
                           {group.items?.map((t) => (
@@ -138,7 +138,7 @@ export function RichEditor({ value, onChange, tokens = [], placeholder = 'Start 
                               onClick={() => insertToken(t.token)}
                               className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-blue-50 transition-colors">
                               <span className="text-slate-800">{t.label}</span>
-                              <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                              <span className="text-[11px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
                                 {`{{${t.token}}}`}
                               </span>
                             </button>

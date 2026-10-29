@@ -91,12 +91,12 @@ function Policies({ branchId }) {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold text-slate-900">{t.name}</p>
-                    {t.code && <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">{t.code}</span>}
+                    {t.code && <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500">{t.code}</span>}
                     {!t.paid && <StatusPill tone="red" dot={false} label="Unpaid" />}
                     {!t.is_active && <StatusPill status="inactive" label="Switched off" />}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {policyFacts(t).map((f) => <span key={f} className="rounded-lg bg-slate-50 px-2 py-0.5 text-[11px] text-slate-600 ring-1 ring-slate-200">{f}</span>)}
+                    {policyFacts(t).map((f) => <span key={f} className="rounded-lg bg-slate-50 px-2 py-0.5 text-[12px] text-slate-600 ring-1 ring-slate-200">{f}</span>)}
                   </div>
                   {t.leaves_count > 0 && <p className="mt-2 text-xs text-slate-400">{t.leaves_count} request(s) on record</p>}
                 </div>

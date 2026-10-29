@@ -17,6 +17,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useRole } from '@/hooks/useRole'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn } from '@/lib/utils'
+import { Select } from '@/components/ui/kit'
 
 const BASE_TABS = [
   { key: 'overview', label: 'Overview', icon: User },
@@ -163,13 +164,13 @@ export default function EmployeeDetailPage() {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={() => navigate('/employees')}
-          className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[13px] font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+          className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[14px] font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
         >
           <ArrowLeft size={15} /> All Employees
         </button>
         {!canManageEmployees && currentUser?.employee_id === emp.id && (
           <button onClick={() => setEditingMine(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-[13px] font-semibold text-white shadow-xs transition-all hover:bg-blue-700">
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-[14px] font-semibold text-white shadow-xs transition-all hover:bg-blue-700">
             <Pencil size={13} /> Update my details
           </button>
         )}
@@ -177,7 +178,7 @@ export default function EmployeeDetailPage() {
           <div className="flex gap-2">
             <Link
               to={`/employees/${emp.id}/edit`}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-[13px] font-semibold text-white shadow-xs transition-all hover:bg-blue-700 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-[14px] font-semibold text-white shadow-xs transition-all hover:bg-blue-700 active:scale-[0.98]"
             >
               <Pencil size={13} /> Edit Profile
             </Link>
@@ -185,7 +186,7 @@ export default function EmployeeDetailPage() {
               <button
                 onClick={() => { if (window.confirm(`Terminate ${emp.first_name} ${emp.last_name}? Their status will be set to terminated.`)) terminateMutation.mutate() }}
                 disabled={terminateMutation.isPending}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-4 py-2 text-[13px] font-semibold text-rose-600 transition-all hover:bg-rose-50 disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-4 py-2 text-[14px] font-semibold text-rose-600 transition-all hover:bg-rose-50 disabled:opacity-40"
               >
                 <UserX size={13} /> Terminate
               </button>
@@ -225,17 +226,17 @@ export default function EmployeeDetailPage() {
               </div>
 
               <h1 className="text-lg font-bold tracking-tight text-slate-900">{emp.first_name} {emp.last_name}</h1>
-              <p className="text-[13px] font-medium text-slate-500">{emp.designation?.title ?? 'No designation'}</p>
+              <p className="text-[14px] font-medium text-slate-500">{emp.designation?.title ?? 'No designation'}</p>
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ring-1 ring-inset',
+                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold capitalize ring-1 ring-inset',
                   STATUS_PILL[emp.status] ?? 'bg-slate-50 text-slate-600 ring-slate-500/20'
                 )}>
                   <span className={cn('h-1.5 w-1.5 rounded-full', STATUS_DOT[emp.status] ?? 'bg-slate-400')} />
                   {emp.status}
                 </span>
-                <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-[11px] font-semibold text-slate-500">
+                <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-[12px] font-semibold text-slate-500">
                   {emp.employee_code}
                 </span>
               </div>
@@ -243,12 +244,12 @@ export default function EmployeeDetailPage() {
               {/* Quick contact actions */}
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <a href={`mailto:${emp.email}`}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700">
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-[13px] font-semibold text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-700">
                   <Mail size={13} /> Email
                 </a>
                 <a href={emp.phone ? `tel:${emp.phone}` : undefined}
                   className={cn(
-                    'inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-[12px] font-semibold transition-colors',
+                    'inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-[13px] font-semibold transition-colors',
                     emp.phone ? 'text-slate-700 hover:bg-blue-50 hover:text-blue-700' : 'cursor-default text-slate-300'
                   )}>
                   <Phone size={13} /> Call
@@ -259,7 +260,7 @@ export default function EmployeeDetailPage() {
 
           {/* At-a-glance card */}
           <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">At a Glance</p>
+            <p className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-slate-400">At a Glance</p>
             <div className="space-y-3">
               <GlanceRow icon={Building2} label="Branch" value={emp.branch?.name} />
               <GlanceRow icon={UsersIcon} label="Department" value={emp.department?.name} />
@@ -277,17 +278,17 @@ export default function EmployeeDetailPage() {
           {/* Direct reports */}
           {(emp.direct_reports?.length ?? 0) > 0 && (
             <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm">
-              <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <p className="mb-3 text-[12px] font-semibold uppercase tracking-wider text-slate-400">
                 Direct Reports · {emp.direct_reports.length}
               </p>
               <div className="space-y-1">
                 {emp.direct_reports.map((r) => (
                   <Link key={r.id} to={`/employees/${r.id}`}
                     className="group flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition-colors hover:bg-blue-50/60">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-[10px] font-bold text-white">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-[11px] font-bold text-white">
                       {r.first_name?.[0]}{r.last_name?.[0]}
                     </span>
-                    <span className="text-[13px] font-medium text-slate-700 group-hover:text-blue-700">
+                    <span className="text-[14px] font-medium text-slate-700 group-hover:text-blue-700">
                       {r.first_name} {r.last_name}
                     </span>
                   </Link>
@@ -306,7 +307,7 @@ export default function EmployeeDetailPage() {
                 key={key}
                 onClick={() => setActiveTab(key)}
                 className={cn(
-                  'inline-flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2 text-[13px] font-semibold transition-all',
+                  'inline-flex shrink-0 items-center gap-1.5 rounded-xl px-4 py-2 text-[14px] font-semibold transition-all',
                   activeTab === key
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
@@ -377,21 +378,21 @@ export default function EmployeeDetailPage() {
                   </div>
                   {canManageEmployees && (
                     <button onClick={() => setShiftModalOpen(true)}
-                      className="text-[12px] font-semibold text-blue-600 hover:underline">
+                      className="text-[13px] font-semibold text-blue-600 hover:underline">
                       {shiftAssignment ? 'Change Shift' : 'Assign Shift'}
                     </button>
                   )}
                 </div>
                 {shiftAssignment ? (
                   <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1">
-                    <p className="text-[14px] font-bold text-slate-800">{shiftAssignment.shift.name}</p>
-                    <p className="text-[13px] text-slate-500">
+                    <p className="text-[15px] font-bold text-slate-800">{shiftAssignment.shift.name}</p>
+                    <p className="text-[14px] text-slate-500">
                       {shiftAssignment.shift.start_time?.slice(0, 5)} – {shiftAssignment.shift.end_time?.slice(0, 5)}
                     </p>
-                    <p className="text-[12px] text-slate-400">Since {fmtDate(shiftAssignment.effective_from)}</p>
+                    <p className="text-[13px] text-slate-400">Since {fmtDate(shiftAssignment.effective_from)}</p>
                   </div>
                 ) : (
-                  <p className="mt-2 text-[13px] text-slate-400">
+                  <p className="mt-2 text-[14px] text-slate-400">
                     No shift assigned — attendance won't be checked for lateness until one is set.
                   </p>
                 )}
@@ -420,9 +421,9 @@ export default function EmployeeDetailPage() {
                 <div className="rounded-xl border border-amber-200/70 bg-amber-50/70 p-5">
                   <div className="mb-2 flex items-center gap-2">
                     <StickyNote size={14} className="text-amber-500" />
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-600">HR Notes — internal only</p>
+                    <p className="text-[12px] font-semibold uppercase tracking-wider text-amber-600">HR Notes — internal only</p>
                   </div>
-                  <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-slate-700">{emp.notes}</p>
+                  <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-slate-700">{emp.notes}</p>
                 </div>
               )}
             </div>
@@ -435,7 +436,7 @@ export default function EmployeeDetailPage() {
                 <SectionTitle icon={FolderOpen} title="Documents" />
                 {canManageEmployees && (
                   <label className={cn(
-                    'inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-[13px] font-semibold text-white shadow-xs transition-all hover:bg-blue-700',
+                    'inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-[14px] font-semibold text-white shadow-xs transition-all hover:bg-blue-700',
                     uploading && 'cursor-not-allowed opacity-60'
                   )}>
                     {uploading ? <Spinner className="h-3.5 w-3.5 border-white border-t-transparent" /> : <Upload size={13} />}
@@ -455,10 +456,10 @@ export default function EmployeeDetailPage() {
                       <FileText size={15} />
                     </div>
                     <button type="button" onClick={() => openEmployeeDocument(emp.id, doc)}
-                      className="min-w-0 flex-1 truncate text-left text-[13px] font-medium text-slate-700 hover:text-blue-700 hover:underline">
+                      className="min-w-0 flex-1 truncate text-left text-[14px] font-medium text-slate-700 hover:text-blue-700 hover:underline">
                       {doc.file_name}
                     </button>
-                    <span className="text-[11px] text-slate-400">{(doc.size / 1024).toFixed(1)} KB</span>
+                    <span className="text-[12px] text-slate-400">{(doc.size / 1024).toFixed(1)} KB</span>
                     {canManageEmployees && (
                       <button onClick={() => handleDeleteDoc(doc.id)}
                         className="rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-rose-50 hover:text-rose-500">
@@ -485,7 +486,7 @@ export default function EmployeeDetailPage() {
                 fmtTime(a.check_out),
                 a.worked_minutes != null ? `${Math.round(a.worked_minutes / 60 * 10) / 10}h` : '—',
                 <div key="s" className="flex items-center gap-1.5">
-                  <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ring-1 ring-inset', {
+                  <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold capitalize ring-1 ring-inset', {
                     'bg-emerald-50 text-emerald-700 ring-emerald-600/20': a.status === 'present',
                     'bg-amber-50 text-amber-700 ring-amber-600/20': a.status === 'late',
                     'bg-rose-50 text-rose-700 ring-rose-600/20': a.status === 'absent',
@@ -493,7 +494,7 @@ export default function EmployeeDetailPage() {
                   })}>
                     {a.status?.replace('_', ' ')}
                   </span>
-                  {a.late_by_minutes > 0 && <span className="text-[10px] font-medium text-amber-600">+{a.late_by_minutes}m</span>}
+                  {a.late_by_minutes > 0 && <span className="text-[11px] font-medium text-amber-600">+{a.late_by_minutes}m</span>}
                 </div>,
               ])}
             />
@@ -512,7 +513,7 @@ export default function EmployeeDetailPage() {
                 fmtDate(l.start_date),
                 fmtDate(l.end_date),
                 l.days_requested ?? '—',
-                <span key="s" className={cn('inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ring-1 ring-inset', {
+                <span key="s" className={cn('inline-flex rounded-full px-2.5 py-1 text-[12px] font-semibold capitalize ring-1 ring-inset', {
                   'bg-emerald-50 text-emerald-700 ring-emerald-600/20': l.status === 'approved',
                   'bg-amber-50 text-amber-700 ring-amber-600/20': l.status === 'pending',
                   'bg-rose-50 text-rose-700 ring-rose-600/20': l.status === 'rejected',
@@ -529,7 +530,7 @@ export default function EmployeeDetailPage() {
               {canManageSalary && (
                 <div className="flex items-center justify-end">
                   <Link to={`/employees/${id}/salary`}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-[14px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
                     <Wallet size={13} /> Manage Salary Structure
                   </Link>
                 </div>
@@ -549,8 +550,8 @@ export default function EmployeeDetailPage() {
                       {salaryData.map((s) => (
                         <div key={s.id} className="flex items-center justify-between py-2.5">
                           <div>
-                            <p className="text-[13px] font-semibold text-slate-800">{s.component?.name ?? '—'}</p>
-                            <p className="text-[11px] text-slate-400">
+                            <p className="text-[14px] font-semibold text-slate-800">{s.component?.name ?? '—'}</p>
+                            <p className="text-[12px] text-slate-400">
                               Effective {fmtDate(s.effective_from)}{s.effective_to ? ` – ${fmtDate(s.effective_to)}` : ''}
                             </p>
                           </div>
@@ -561,8 +562,8 @@ export default function EmployeeDetailPage() {
                       ))}
                     </div>
                     <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-3">
-                      <p className="text-[13px] font-bold text-slate-700">Net Monthly</p>
-                      <p className="text-[15px] font-extrabold text-slate-900">
+                      <p className="text-[14px] font-bold text-slate-700">Net Monthly</p>
+                      <p className="text-[16px] font-extrabold text-slate-900">
                         ₹{salaryData.reduce((sum, s) => sum + (s.component?.type === 'deduction' ? -Number(s.amount ?? 0) : Number(s.amount ?? 0)), 0).toLocaleString()}
                       </p>
                     </div>
@@ -583,11 +584,11 @@ export default function EmployeeDetailPage() {
                   `₹${Number(p.gross_pay ?? 0).toLocaleString()}`,
                   <span key="d" className="text-rose-600">₹{Number(p.total_deductions ?? 0).toLocaleString()}</span>,
                   <span key="n" className="font-bold text-emerald-700">₹{Number(p.net_pay ?? 0).toLocaleString()}</span>,
-                  <span key="s" className={cn('inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ring-1 ring-inset',
+                  <span key="s" className={cn('inline-flex rounded-full px-2.5 py-1 text-[12px] font-semibold capitalize ring-1 ring-inset',
                     p.status === 'paid' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-amber-50 text-amber-700 ring-amber-600/20'
                   )}>{p.status}</span>,
                   <button key="l" onClick={() => openPayslipPdf(p.id).catch(() => {})}
-                    className="text-[12px] font-semibold text-blue-600 hover:underline">PDF</button>,
+                    className="text-[13px] font-semibold text-blue-600 hover:underline">PDF</button>,
                 ])}
               />
             </div>
@@ -632,7 +633,7 @@ function AssignShiftModal({ employee, current, onClose, onSaved }) {
     mutation.mutate()
   }
 
-  const field = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-xs text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15'
+  const field = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[14px] shadow-xs text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -645,28 +646,28 @@ function AssignShiftModal({ employee, current, onClose, onSaved }) {
 
         <form onSubmit={submit} className="space-y-4 p-5">
           {mutation.isError && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[13px] text-rose-600">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[14px] text-rose-600">
               {mutation.error?.response?.data?.message ?? 'Could not assign the shift.'}
             </div>
           )}
 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Shift <span className="text-rose-500">*</span></label>
-            <select required value={shiftId} onChange={(e) => setShiftId(e.target.value)} className={field}>
+            <Select required value={shiftId} onChange={(e) => setShiftId(e.target.value)} className={field}>
               <option value="">Select a shift…</option>
               {(Array.isArray(shifts) ? shifts : []).map((s) => (
                 <option key={s.id} value={s.id}>{s.name} ({s.start_time?.slice(0, 5)}–{s.end_time?.slice(0, 5)})</option>
               ))}
-            </select>
+            </Select>
             {(Array.isArray(shifts) ? shifts : []).length === 0 && (
-              <p className="mt-1 text-[11px] text-amber-600">No shifts exist for this branch yet — create one in Shift Settings first.</p>
+              <p className="mt-1 text-[12px] text-amber-600">No shifts exist for this branch yet — create one in Shift Settings first.</p>
             )}
           </div>
 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Effective From</label>
             <input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} className={field} />
-            {current && <p className="mt-1 text-[11px] text-slate-400">The current shift will end the day before this date.</p>}
+            {current && <p className="mt-1 text-[12px] text-slate-400">The current shift will end the day before this date.</p>}
           </div>
 
           <div className="flex justify-end gap-3 pt-1">
@@ -690,11 +691,11 @@ function GlanceRow({ icon: Icon, label, value, sub, link, capitalize }) {
         <Icon size={13} />
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] text-slate-400">{label}</p>
-        <p className={cn('truncate text-[13px] font-semibold text-slate-800', capitalize && 'capitalize', link && 'text-blue-600')}>
+        <p className="text-[12px] text-slate-400">{label}</p>
+        <p className={cn('truncate text-[14px] font-semibold text-slate-800', capitalize && 'capitalize', link && 'text-blue-600')}>
           {value ?? '—'}
         </p>
-        {sub && <p className="text-[11px] text-slate-400">{sub}</p>}
+        {sub && <p className="text-[12px] text-slate-400">{sub}</p>}
       </div>
     </div>
   )
@@ -707,7 +708,7 @@ function SectionTitle({ icon: Icon, title }) {
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
         <Icon size={15} />
       </div>
-      <h2 className="text-[15px] font-bold tracking-tight text-slate-900">{title}</h2>
+      <h2 className="text-[16px] font-bold tracking-tight text-slate-900">{title}</h2>
     </div>
   )
 }
@@ -728,7 +729,7 @@ function FieldGrid({ fields, cols = 2 }) {
     <dl className={cn('grid gap-x-8 gap-y-4', cols === 2 && 'sm:grid-cols-2')}>
       {fields.map(([label, value, capitalize]) => (
         <div key={label}>
-          <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{label}</dt>
+          <dt className="text-[12px] font-semibold uppercase tracking-wider text-slate-400">{label}</dt>
           <dd className={cn('mt-1 text-[13.5px] font-medium text-slate-800 break-words', capitalize && value && 'capitalize', !value && 'font-normal text-slate-300')}>
             {value || 'Not added'}
           </dd>
@@ -744,7 +745,7 @@ function EmptyState({ icon: Icon, text }) {
       <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 text-slate-300">
         <Icon size={20} />
       </div>
-      <p className="text-[13px] text-slate-400">{text}</p>
+      <p className="text-[14px] text-slate-400">{text}</p>
     </div>
   )
 }
@@ -763,14 +764,14 @@ function DataTableCard({ icon, title, loading, headers, rows, empty }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <tr className="bg-slate-50/70 text-left text-[12px] font-semibold uppercase tracking-wider text-slate-400">
                 {headers.map((h, i) => <th key={i} className="px-5 py-3">{h}</th>)}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {rows.map((cells, i) => (
                 <tr key={i} className="transition-colors hover:bg-blue-50/30">
-                  {cells.map((c, j) => <td key={j} className="px-5 py-3.5 text-[13px] text-slate-600">{c}</td>)}
+                  {cells.map((c, j) => <td key={j} className="px-5 py-3.5 text-[14px] text-slate-600">{c}</td>)}
                 </tr>
               ))}
             </tbody>

@@ -85,7 +85,7 @@ export default function SalaryStructurePage() {
                     <div key={l.id} className="flex items-center gap-3 px-5 py-3">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-slate-900">{l.component?.name}
-                          {l.upcoming && <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">from {dateLabel(l.effective_from)}</span>}</p>
+                          {l.upcoming && <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700">from {dateLabel(l.effective_from)}</span>}</p>
                         <p className="text-xs text-slate-400">
                           {l.component?.calculation_type === 'percentage' ? `${Number(l.amount)}% of ${l.component?.percentage_of === 'gross' ? 'gross' : 'basic'}` : 'Fixed'}
                           {' · since '}{dateLabel(l.effective_from)}{l.effective_to ? ` until ${dateLabel(l.effective_to)}` : ''}
@@ -193,7 +193,7 @@ function FromGrossModal({ employee, currentGross, onClose, onSaved }) {
         </div>
         <div className="grid grid-cols-4 gap-2 rounded-xl bg-slate-50 p-3 text-center text-sm">
           {[['Basic', basic], ['HRA', hra], ['Conveyance', conveyance], ['Special', special]].map(([label, v]) => (
-            <div key={label}><p className="text-[10px] font-semibold uppercase text-slate-400">{label}</p><p className={v < 0 ? 'font-semibold text-rose-600' : 'font-semibold text-slate-800'}>{money(v)}</p></div>
+            <div key={label}><p className="text-[11px] font-semibold uppercase text-slate-400">{label}</p><p className={v < 0 ? 'font-semibold text-rose-600' : 'font-semibold text-slate-800'}>{money(v)}</p></div>
           ))}
         </div>
       </div>

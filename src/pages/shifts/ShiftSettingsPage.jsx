@@ -108,7 +108,7 @@ function ShiftModal({ initial, branches, activeBranchId, onSave, onClose, saving
         )}
 
         <div className="rounded-lg border border-slate-200">
-          <button type="button" onClick={() => setShowRules((v) => !v)} className="flex w-full items-center justify-between px-4 py-2.5 text-left text-[13px] font-medium text-slate-700">
+          <button type="button" onClick={() => setShowRules((v) => !v)} className="flex w-full items-center justify-between px-4 py-2.5 text-left text-[14px] font-medium text-slate-700">
             Attendance rules <span className="flex items-center gap-1 text-xs font-normal text-slate-500">half day, absent, overtime, punch window<ChevronDown size={14} className={cn('transition-transform', showRules && 'rotate-180')} /></span>
           </button>
           {showRules && (
@@ -187,7 +187,7 @@ export default function ShiftSettingsPage() {
                       {(shift.code || shift.name?.[0] || '?').slice(0, 3).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-[15px] font-semibold text-slate-900">{shift.name}</h3>
+                      <h3 className="truncate text-[16px] font-semibold text-slate-900">{shift.name}</h3>
                       <p className="truncate text-xs text-slate-500">{shift.branch?.name ?? '—'}</p>
                     </div>
                     {canManageEmployees && (
@@ -236,7 +236,7 @@ export default function ShiftSettingsPage() {
             <Button variant="danger" icon={Trash2} loading={deleteMut.isPending} onClick={() => deleteMut.mutate(deleting.id)}>Delete</Button>
           </>}>
           <ErrorBanner error={deleteMut.error} className="mb-3" />
-          <p className="text-[13px] text-slate-600">Delete <strong className="text-slate-900">{deleting.name}</strong>? This can’t be undone.</p>
+          <p className="text-[14px] text-slate-600">Delete <strong className="text-slate-900">{deleting.name}</strong>? This can’t be undone.</p>
         </Modal>
       )}
 
@@ -271,7 +271,7 @@ function AssignShiftModal({ shift, branches, onClose }) {
   if (mutation.isSuccess) {
     return (
       <Modal size="sm" title={`Assigned ${shift.name}`} onClose={onClose} footer={<Button onClick={onClose}>Done</Button>}>
-        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[13px] text-emerald-700">
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[14px] text-emerald-700">
           <Check size={15} />{mutation.data?.data?.message ?? 'Shift assigned.'}
         </div>
       </Modal>
@@ -302,9 +302,9 @@ function AssignShiftModal({ shift, branches, onClose }) {
           <Input className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search people" />
         </div>
         <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-200">
-          {!branchId ? <p className="py-8 text-center text-[13px] text-slate-400">Pick a branch to list its people.</p>
+          {!branchId ? <p className="py-8 text-center text-[14px] text-slate-400">Pick a branch to list its people.</p>
             : isLoading ? <div className="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>
-            : filtered.length === 0 ? <p className="py-8 text-center text-[13px] text-slate-400">No one found.</p>
+            : filtered.length === 0 ? <p className="py-8 text-center text-[14px] text-slate-400">No one found.</p>
             : (
               <ul className="divide-y divide-slate-100">
                 <li>
@@ -317,7 +317,7 @@ function AssignShiftModal({ shift, branches, onClose }) {
                   <li key={emp.id}>
                     <label className="flex cursor-pointer items-center gap-2.5 px-3 py-2 hover:bg-slate-50">
                       <input type="checkbox" checked={selected.has(emp.id)} onChange={() => toggle(emp.id)} className="h-4 w-4 accent-blue-600" />
-                      <span className="text-[13px] font-medium text-slate-800">{emp.first_name} {emp.last_name}</span>
+                      <span className="text-[14px] font-medium text-slate-800">{emp.first_name} {emp.last_name}</span>
                       <span className="text-xs text-slate-400">{emp.employee_code}</span>
                     </label>
                   </li>

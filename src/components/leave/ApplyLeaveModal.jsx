@@ -157,7 +157,7 @@ export function ApplyLeaveModal({ onClose, onDone, onBehalf = false, presetEmplo
                       className={cn('rounded-xl border px-3 py-2.5 text-left transition-all',
                         active ? 'border-blue-500 bg-blue-50 ring-3 ring-blue-500/15' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50',
                         empty && !active && 'opacity-60')}>
-                      <span className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-800">
+                      <span className="flex items-center gap-1.5 text-[14px] font-semibold text-slate-800">
                         <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: typeColor(row.leave_type) }} />
                         <span className="truncate">{row.leave_type.name}</span>
                       </span>
@@ -257,12 +257,12 @@ function QuotePanel({ quote, loading }) {
       {dates.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {dates.slice(0, 16).map(([date, fraction]) => (
-            <span key={date} className="rounded-lg bg-white px-2 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200">
+            <span key={date} className="rounded-lg bg-white px-2 py-1 text-[12px] font-medium text-slate-600 ring-1 ring-slate-200">
               {new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
               {fraction < 1 && ' · ½'}
             </span>
           ))}
-          {dates.length > 16 && <span className="px-1 py-1 text-[11px] text-slate-400">+{dates.length - 16} more</span>}
+          {dates.length > 16 && <span className="px-1 py-1 text-[12px] text-slate-400">+{dates.length - 16} more</span>}
         </div>
       )}
 

@@ -14,14 +14,14 @@ function Preview() {
   return (
     <div className="rounded-xl bg-white/95 p-4 text-slate-900 shadow-2xl ring-1 ring-white/20">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Today · all branches</p>
-        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">Live</span>
+        <p className="text-[12px] font-semibold uppercase tracking-wider text-slate-400">Today · all branches</p>
+        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Live</span>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2">
         {[['Present', '46', 'text-emerald-600'], ['On leave', '3', 'text-violet-600'], ['Late', '4', 'text-amber-600']].map(([l, v, c]) => (
           <div key={l} className="rounded-lg bg-slate-50 px-2.5 py-2">
             <p className={`text-lg font-semibold tabular-nums ${c}`}>{v}</p>
-            <p className="text-[10px] text-slate-500">{l}</p>
+            <p className="text-[11px] text-slate-500">{l}</p>
           </div>
         ))}
       </div>
@@ -30,9 +30,9 @@ function Preview() {
       </div>
       <div className="mt-3 space-y-1.5">
         {[['Leave · Anjali Nair', '2 days casual'], ['Overtime · Rahul K', '2.5 hours']].map(([t, s]) => (
-          <div key={t} className="flex items-center justify-between rounded-lg border border-slate-100 px-2.5 py-1.5 text-[11px]">
+          <div key={t} className="flex items-center justify-between rounded-lg border border-slate-100 px-2.5 py-1.5 text-[12px]">
             <span className="font-medium text-slate-700">{t}<span className="ml-1.5 font-normal text-slate-400">{s}</span></span>
-            <span className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">Approve</span>
+            <span className="rounded bg-blue-600 px-1.5 py-0.5 text-[11px] font-semibold text-white">Approve</span>
           </div>
         ))}
       </div>
@@ -59,7 +59,7 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
           <h2 className="text-[28px] font-semibold leading-tight tracking-tight">People, time and pay — one place for every branch.</h2>
           <ul className="mt-5 space-y-2.5">
             {POINTS.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 text-[14px] text-blue-100">
+              <li key={text} className="flex items-center gap-3 text-[15px] text-blue-100">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15"><Icon size={15} /></span>{text}
               </li>
             ))}

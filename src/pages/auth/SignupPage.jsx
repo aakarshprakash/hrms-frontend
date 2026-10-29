@@ -213,8 +213,8 @@ function StepRail({ step, trialDays, onJump }) {
                   {done ? <Check size={16} /> : i + 1}
                 </button>
                 <div className={cn('pt-1', !done && !current && 'opacity-50')}>
-                  <p className="text-[15px] font-semibold">{s.title}</p>
-                  <p className="text-[13px] text-blue-200">{s.hint}</p>
+                  <p className="text-[16px] font-semibold">{s.title}</p>
+                  <p className="text-[14px] text-blue-200">{s.hint}</p>
                 </div>
               </li>
             )
@@ -222,7 +222,7 @@ function StepRail({ step, trialDays, onJump }) {
         </ol>
       </div>
 
-      <div className="relative flex items-center gap-2.5 rounded-xl bg-white/10 px-4 py-3 text-[13px] text-blue-100 ring-1 ring-white/15">
+      <div className="relative flex items-center gap-2.5 rounded-xl bg-white/10 px-4 py-3 text-[14px] text-blue-100 ring-1 ring-white/15">
         <Gift size={18} className="shrink-0 text-emerald-300" />
         <span><span className="font-semibold text-white">{trialDays}-day free trial</span> on every plan · no card needed today</span>
       </div>
@@ -308,12 +308,12 @@ function AccountStep({ form, set, verified, onVerified, onResetVerification }) {
         </Field>
 
         {verified && (
-          <p className="-mt-1 flex items-center gap-1.5 text-[13px] font-medium text-emerald-600"><CheckCircle2 size={16} /> Email verified</p>
+          <p className="-mt-1 flex items-center gap-1.5 text-[14px] font-medium text-emerald-600"><CheckCircle2 size={16} /> Email verified</p>
         )}
 
         {awaitingCode && (
           <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
-            <p className="text-[13px] text-slate-700">We sent a 6-digit code to <span className="font-semibold">{sent.email}</span>. It expires in 10 minutes.</p>
+            <p className="text-[14px] text-slate-700">We sent a 6-digit code to <span className="font-semibold">{sent.email}</span>. It expires in 10 minutes.</p>
             {sent.devCode && <p className="mt-1 text-xs text-amber-700">Development mode — your code is <span className="font-mono font-semibold">{sent.devCode}</span></p>}
             <div className="mt-3 flex gap-2">
               <Input value={code} inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="••••••" autoFocus
@@ -368,7 +368,7 @@ function WorkspaceStep({ form, set, industries }) {
           </Field>
           <Field label="Contact phone">
             <div className="flex">
-              <span className="flex h-10 items-center gap-1.5 rounded-l-lg border border-r-0 border-slate-200 bg-slate-50 px-3 text-[13px] text-slate-600">
+              <span className="flex h-10 items-center gap-1.5 rounded-l-lg border border-r-0 border-slate-200 bg-slate-50 px-3 text-[14px] text-slate-600">
                 <Phone size={14} className="text-slate-400" />+91
               </span>
               <Input className="h-10 rounded-l-none" inputMode="tel" value={form.company_phone} placeholder="98765 43210"
@@ -425,10 +425,10 @@ function PlanStep({ form, set, plans, cycles, trialPlan, trialDays }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <p className="text-lg font-semibold text-slate-900">{p.name}</p>
-                    {p.code === trialPlan && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 ring-1 ring-blue-600/20">Most popular</span>}
-                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-600/20">{trialDays} days free</span>
+                    {p.code === trialPlan && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[12px] font-semibold text-blue-700 ring-1 ring-blue-600/20">Most popular</span>}
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[12px] font-semibold text-emerald-700 ring-1 ring-emerald-600/20">{trialDays} days free</span>
                   </div>
-                  <p className="mt-0.5 text-[13px] text-slate-500">{p.description}</p>
+                  <p className="mt-0.5 text-[14px] text-slate-500">{p.description}</p>
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">{money(price.perMonth)}<span className="text-xs font-medium text-slate-400">/mo</span></p>
@@ -438,7 +438,7 @@ function PlanStep({ form, set, plans, cycles, trialPlan, trialDays }) {
 
               <div className="mt-4 flex flex-wrap gap-1.5 pl-[60px]">
                 {p.features.filter((f) => FEATURE_LABELS[f]).map((f) => (
-                  <span key={f} className={cn('rounded-md px-2 py-1 text-[11px] font-medium', selected ? 'bg-blue-50 text-blue-800' : 'bg-slate-100 text-slate-600')}>{FEATURE_LABELS[f]}</span>
+                  <span key={f} className={cn('rounded-md px-2 py-1 text-[12px] font-medium', selected ? 'bg-blue-50 text-blue-800' : 'bg-slate-100 text-slate-600')}>{FEATURE_LABELS[f]}</span>
                 ))}
               </div>
               <p className="mt-3 pl-[60px] text-xs text-slate-500">
@@ -456,7 +456,7 @@ function PlanStep({ form, set, plans, cycles, trialPlan, trialDays }) {
 
 function ReviewRow({ label, children, tone, onEdit }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2.5 text-[14px]">
+    <div className="flex items-center justify-between gap-4 py-2.5 text-[15px]">
       <span className="text-slate-500">{label}</span>
       <span className={cn('flex items-center gap-2 text-right font-medium', tone ?? 'text-slate-900')}>
         {children}
@@ -493,13 +493,13 @@ function ReviewStep({ form, plan, cycle, trialDays, gstRate, onEdit }) {
           <div>
             <ReviewRow label={<>Due on {firstCharge} <span className="text-xs text-slate-400">incl. GST</span></>}>{money(price.perPeriod + gst, { paise: true })}</ReviewRow>
             <div className="flex items-center justify-between py-3">
-              <span className="text-[15px] font-semibold text-slate-900">Due today</span>
+              <span className="text-[16px] font-semibold text-slate-900">Due today</span>
               <span className="text-2xl font-semibold text-emerald-600">₹0</span>
             </div>
           </div>
         </div>
       </div>
-      <div className="mt-4 flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-900">
+      <div className="mt-4 flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-[14px] text-emerald-900">
         <Gift size={18} className="mt-0.5 shrink-0 text-emerald-600" />
         <p>
           <span className="font-semibold">Your first {trialDays} days are free.</span> Nothing is charged today. We’ll email an invoice when the trial

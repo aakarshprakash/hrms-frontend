@@ -6,18 +6,19 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, User, MapPin, Briefcase, Landmark, PhoneCall, Pencil, Check, ShieldCheck } from 'lucide-react'
 import { employeeApi } from '@/lib/api/employees'
-import { departmentApi, designationApi, branchApi } from '@/lib/api/departments'
+import { departmentApi, designationApi, branchApi, workLocationApi } from '@/lib/api/departments'
 import { shiftApi } from '@/lib/api/shifts'
 import { Spinner } from '@/components/ui/Spinner'
 import { cn } from '@/lib/utils'
 import AddEmployeeWizard from './AddEmployeeWizard'
+import { Select } from '@/components/ui/kit'
 
 const optional = (s) => s.optional().or(z.literal(''))
 
 const schema = z.object({
   // Personal
   first_name: z.string().min(1, 'Required'),
-  last_name: z.string().min(1, 'Required'),
+  last_name: z.string().optional(),
   email: z.string().email('Valid email required'),
   personal_email: optional(z.string().email('Valid email required')),
   phone: optional(z.string()),
@@ -52,7 +53,7 @@ const schema = z.object({
   employment_type: z.enum(['full_time', 'part_time', 'contract', 'intern']),
   probation_end_date: optional(z.string()),
   notice_period_days: optional(z.coerce.number().min(0).max(365)),
-  work_location: optional(z.string()),
+  work_location_id: optional(z.coerce.number()),
   status: z.enum(['active', 'inactive', 'terminated']).default('active'),
   notes: optional(z.string()),
   // Organisation
@@ -93,8 +94,8 @@ function Section({ id, icon: Icon, title, subtitle, color = 'blue', children }) 
           <Icon size={16} />
         </div>
         <div>
-          <h2 className="text-[14px] font-bold text-slate-900">{title}</h2>
-          {subtitle && <p className="text-[12px] text-slate-400">{subtitle}</p>}
+          <h2 className="text-[15px] font-bold text-slate-900">{title}</h2>
+          {subtitle && <p className="text-[13px] text-slate-400">{subtitle}</p>}
         </div>
       </div>
       <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
@@ -156,6 +157,10 @@ function EditEmployeeForm({ id }) {
     enabled: !!selectedBranch,
   })
 
+  const { data: workLocations = [] } = useQuery({
+    queryKey: ['work-locations', 'active'],
+    queryFn: () => workLocationApi.list({ active: 1 }).then((r) => r.data.data),
+  })
   const { data: shiftsData } = useQuery({
     queryKey: ['shifts', selectedBranch],
     queryFn: () => shiftApi.list({ branch_id: selectedBranch }).then((r) => r.data?.data ?? r.data ?? []),
@@ -204,7 +209,7 @@ function EditEmployeeForm({ id }) {
         employment_type: existing.employment_type,
         probation_end_date: existing.probation_end_date?.slice(0, 10) ?? '',
         notice_period_days: existing.notice_period_days ?? '',
-        work_location: str(existing.work_location),
+        work_location_id: str(existing.work_location_id),
         status: existing.status,
         notes: str(existing.notes),
         branch_id: existing.branch_id,
@@ -236,8 +241,8 @@ function EditEmployeeForm({ id }) {
   })
 
   async function onSubmit(data) {
-    const optionalIds = ['department_id', 'designation_id', 'reporting_manager_id']
-    const required = ['first_name', 'last_name', 'email', 'employee_code', 'date_of_joining', 'employment_type', 'branch_id', 'status']
+    const optionalIds = ['department_id', 'designation_id', 'reporting_manager_id', 'work_location_id']
+    const required = ['first_name', 'email', 'employee_code', 'date_of_joining', 'employment_type', 'branch_id', 'status']
     // shift isn't an employee field (handled separately below); weekly offs are a mode + days pair.
     const { shift_id, weekly_off_mode, weekly_off_days, ...rest } = data
     const payload = {
@@ -267,7 +272,7 @@ function EditEmployeeForm({ id }) {
   }
 
   const fieldCls = (name) => cn(
-    'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] shadow-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15',
+    'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-[14px] shadow-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-3 focus:ring-blue-500/15',
     errors[name] && 'border-rose-400 ring-3 ring-rose-500/15'
   )
 
@@ -276,14 +281,14 @@ function EditEmployeeForm({ id }) {
   )
 
   const select = (name, options) => (
-    <select {...register(name)} className={fieldCls(name)}>
+    <Select {...register(name)} className={fieldCls(name)}>
       {options.map(([val, lbl]) => <option key={val} value={val}>{lbl}</option>)}
-    </select>
+    </Select>
   )
 
   const Field = ({ label, name, required, children, className }) => (
     <div className={className}>
-      <label className="mb-1 block text-[13px] font-medium text-slate-700">
+      <label className="mb-1 block text-[14px] font-medium text-slate-700">
         {label}{required && <span className="ml-0.5 text-rose-500">*</span>}
       </label>
       {children}
@@ -317,7 +322,7 @@ function EditEmployeeForm({ id }) {
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">Edit Employee</h1>
-            <p className="text-[13px] text-slate-500">
+            <p className="text-[14px] text-slate-500">
               Updating {existing?.first_name} {existing?.last_name}'s profile
             </p>
           </div>
@@ -348,14 +353,14 @@ function EditEmployeeForm({ id }) {
                 {initials}
               </div>
             )}
-            <p className="mt-3 text-[14px] font-bold text-slate-900">{existing?.first_name} {existing?.last_name}</p>
-            <p className="font-mono text-[11px] text-slate-400">{existing?.employee_code}</p>
+            <p className="mt-3 text-[15px] font-bold text-slate-900">{existing?.first_name} {existing?.last_name}</p>
+            <p className="font-mono text-[12px] text-slate-400">{existing?.employee_code}</p>
           </div>
 
           <nav className="hidden rounded-xl border border-slate-200/80 bg-white p-2 shadow-sm lg:block">
             {NAV_SECTIONS.map((s) => (
               <button key={s.id} type="button" onClick={() => jumpTo(s.id)}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900">
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[14px] font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900">
                 <div className={cn('flex h-6 w-6 shrink-0 items-center justify-center rounded-lg', SECTION_COLORS[s.color])}>
                   <s.icon size={12} />
                 </div>
@@ -368,7 +373,7 @@ function EditEmployeeForm({ id }) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 min-w-0">
         <Section id="sec-personal" color="blue" icon={User} title="Personal Details" subtitle="Identity and personal information">
           <Field label="First Name" name="first_name" required>{input('first_name')}</Field>
-          <Field label="Last Name" name="last_name" required>{input('last_name')}</Field>
+          <Field label="Last Name" name="last_name">{input('last_name')}</Field>
           <Field label="Work Email" name="email" required>{input('email', { type: 'email' })}</Field>
           <Field label="Personal Email" name="personal_email">{input('personal_email', { type: 'email' })}</Field>
           <Field label="Phone" name="phone">{input('phone', { type: 'tel' })}</Field>
@@ -419,7 +424,7 @@ function EditEmployeeForm({ id }) {
               ['', 'No shift assigned'],
               ...(Array.isArray(shiftsData) ? shiftsData : []).map((s) => [s.id, `${s.name} (${s.start_time?.slice(0, 5)}–${s.end_time?.slice(0, 5)})`]),
             ])}
-            <p className="mt-1 text-[11px] text-slate-400">Used to detect late arrivals and half-days automatically.</p>
+            <p className="mt-1 text-[12px] text-slate-400">Used to detect late arrivals and half-days automatically.</p>
           </Field>
           <Field label="Reporting Manager" name="reporting_manager_id">
             {select('reporting_manager_id', [
@@ -431,7 +436,9 @@ function EditEmployeeForm({ id }) {
           </Field>
           <Field label="Probation End Date" name="probation_end_date">{input('probation_end_date', { type: 'date' })}</Field>
           <Field label="Notice Period (days)" name="notice_period_days">{input('notice_period_days', { type: 'number' })}</Field>
-          <Field label="Work Location" name="work_location">{input('work_location', { placeholder: 'e.g. Head Office, Remote' })}</Field>
+          <Field label="Work Location" name="work_location_id">
+            {select('work_location_id', [['', workLocations.length ? 'Not set' : 'Add locations under Organisation → Work Locations'], ...workLocations.map((l) => [l.id, l.name])])}
+          </Field>
           <Field label="Status" name="status">
             {select('status', [['active', 'Active'], ['inactive', 'Inactive'], ['terminated', 'Terminated']])}
           </Field>
@@ -483,8 +490,8 @@ function EditEmployeeForm({ id }) {
             </Field>
           )}
           <div className="flex flex-col justify-end gap-2 pb-1 sm:col-span-2 lg:col-span-1">
-            <label className="flex items-center gap-2 text-[13px] text-slate-700"><input type="checkbox" {...register('pf_opted_out')} className="h-4 w-4 rounded" /> Not a PF member (opted out)</label>
-            <label className="flex items-center gap-2 text-[13px] text-slate-700"><input type="checkbox" {...register('pt_exempt')} className="h-4 w-4 rounded" /> Exempt from professional tax</label>
+            <label className="flex items-center gap-2 text-[14px] text-slate-700"><input type="checkbox" {...register('pf_opted_out')} className="h-4 w-4 rounded" /> Not a PF member (opted out)</label>
+            <label className="flex items-center gap-2 text-[14px] text-slate-700"><input type="checkbox" {...register('pt_exempt')} className="h-4 w-4 rounded" /> Exempt from professional tax</label>
           </div>
         </Section>
 

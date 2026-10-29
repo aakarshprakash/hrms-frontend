@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { CreditCard, Check, Download, AlertTriangle, Users, Building2, Save, CheckCircle2, Zap } from 'lucide-react'
+import { CreditCard, Check, Download, AlertTriangle, Users, Building2, Save, CheckCircle2, Zap, KeyRound, RefreshCw } from 'lucide-react'
 import { billingApi, FEATURE_LABELS, DEFAULT_CYCLES, CYCLE_NOUN } from '@/lib/api/billing'
 import { apiError } from '@/lib/api/axios'
 import { payInvoice } from '@/lib/razorpay'
@@ -11,7 +11,7 @@ import { refreshSession } from '@/lib/session'
 import { money, dateLabel } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/Spinner'
-import { PageHeader, Card, Button, StatusPill, Field, Input, ErrorBanner, Table, EmptyState } from '@/components/ui/kit'
+import { PageHeader, Card, CardHeader, Button, StatusPill, Field, Input, ErrorBanner, Table, EmptyState, Toggle } from '@/components/ui/kit'
 
 const STATUS = {
   trialing: ['blue', 'Free trial'], active: ['green', 'Active'], past_due: ['amber', 'Payment overdue'],
@@ -38,6 +38,10 @@ export default function BillingPage() {
       )}
       <CurrentPlan data={data} />
       {data.unpaid.length > 0 && <Unpaid data={data} />}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <RedeemLicense />
+        {data.subscription?.is_live && data.subscription?.billing_mode !== 'license' && <Autopay data={data} />}
+      </div>
       <Plans data={data} />
       <Invoices online={data.online_payment} />
       <BillingDetails details={data.billing_details} />
@@ -70,10 +74,11 @@ function CurrentPlan({ data }) {
           </div>
           <p className="mt-1 text-sm text-slate-500">
             {s.status === 'trialing' && `${s.trial_days_left} day(s) left in your trial${s.plan_confirmed_at ? ' — billing starts when it ends.' : '. Choose a plan to keep every module.'}`}
-            {s.status === 'active' && s.current_period_end && `${(data.cycles ?? DEFAULT_CYCLES).find((c) => c.key === s.billing_cycle)?.label ?? 'Monthly'} · renews ${dateLabel(s.current_period_end)}`}
+            {s.status === 'active' && s.current_period_end && s.billing_mode === 'license' && `Licence ${s.license?.key ?? ''} · valid until ${dateLabel(s.current_period_end)}. Redeem a new key before then to continue.`}
+            {s.status === 'active' && s.current_period_end && s.billing_mode !== 'license' && `${(data.cycles ?? DEFAULT_CYCLES).find((c) => c.key === s.billing_cycle)?.label ?? 'Monthly'} · renews ${dateLabel(s.current_period_end)}`}
             {s.status === 'active' && !s.current_period_end && 'No renewal needed.'}
             {s.status === 'expired' && 'You’re on the free core (attendance, leave, self-service). Choose a plan to switch the other modules back on.'}
-            {s.status === 'past_due' && 'An invoice is overdue — please pay to avoid interruption.'}
+            {s.status === 'past_due' && (s.billing_mode === 'license' ? 'Your licence has run out — redeem a new key to avoid interruption.' : 'An invoice is overdue — please pay to avoid interruption.')}
           </p>
         </div>
         <div className="flex gap-2">
@@ -109,6 +114,62 @@ function CurrentPlan({ data }) {
         </div>
       )}
       <ErrorBanner error={cancel.error ?? resume.error} className="mt-3" />
+    </Card>
+  )
+}
+
+/** A key from the platform team, for plans paid by bank transfer, UPI or cheque. */
+function RedeemLicense() {
+  const qc = useQueryClient()
+  const [key, setKey] = useState('')
+  const redeem = useMutation({
+    mutationFn: () => billingApi.redeemLicense(key.trim()),
+    onSuccess: async () => { setKey(''); await refreshSession().catch(() => {}); qc.invalidateQueries({ queryKey: ['billing'] }) },
+  })
+
+  return (
+    <Card padded={false}>
+      <CardHeader icon={KeyRound} title="Have a licence key?" subtitle="Paid by bank transfer, UPI or cheque? Enter the key we sent you to activate your plan." />
+      <form className="space-y-3 p-5" onSubmit={(e) => { e.preventDefault(); if (key.trim()) redeem.mutate() }}>
+        <ErrorBanner error={redeem.error} />
+        {redeem.isSuccess && (
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            <CheckCircle2 size={15} /> {redeem.data?.data?.message}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <Input value={key} onChange={(e) => setKey(e.target.value.toUpperCase())} placeholder="PNX-XXXXX-XXXXX-XXXXX-XXXXX"
+            className="font-mono tracking-wide placeholder:font-sans placeholder:tracking-normal" aria-label="Licence key" />
+          <Button type="submit" loading={redeem.isPending} disabled={!key.trim()}>Activate</Button>
+        </div>
+      </form>
+    </Card>
+  )
+}
+
+/** Automatic renewal by card / UPI mandate. Charging is switched on by the platform; the choice is kept until then. */
+function Autopay({ data }) {
+  const qc = useQueryClient()
+  const s = data.subscription
+  const save = useMutation({
+    mutationFn: (on) => billingApi.setAutopay(on),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['billing'] }),
+  })
+
+  return (
+    <Card padded={false}>
+      <CardHeader icon={RefreshCw} title="Autopay" subtitle="Renew automatically so modules never switch off." />
+      <div className="space-y-3 p-5">
+        <ErrorBanner error={save.error} />
+        <Toggle checked={!!s.autopay} disabled={save.isPending} onChange={(on) => save.mutate(on)}
+          label={s.autopay ? 'Autopay is on' : 'Autopay is off'}
+          description={s.autopay ? 'Each renewal is charged to your saved card or UPI mandate.' : 'You’ll get an invoice at each renewal and pay it yourself.'} />
+        {!data.autopay_available && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Automatic charging isn’t live yet. Your choice is saved; until it’s enabled, renewals are invoiced as usual.
+          </p>
+        )}
+      </div>
     </Card>
   )
 }

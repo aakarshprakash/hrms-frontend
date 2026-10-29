@@ -6,6 +6,7 @@ import { useRole } from '@/hooks/useRole'
 import { money, monthLabel, days, MONTHS_SHORT } from '@/lib/format'
 import { Spinner } from '@/components/ui/Spinner'
 import PayslipBreakdown from '@/components/payroll/PayslipBreakdown'
+import { lopAmount } from '@/lib/payslip'
 import { PageHeader, Card, Button, Modal, Select, Tabs, Table, EmptyState, StatusPill, Pagination } from '@/components/ui/kit'
 
 export default function PayslipPage() {
@@ -55,7 +56,7 @@ function MyPayslips({ onOpen }) {
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 flex-col items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-                  <span className="text-[10px] font-bold uppercase leading-none">{MONTHS_SHORT[run.month - 1]}</span>
+                  <span className="text-[11px] font-bold uppercase leading-none">{MONTHS_SHORT[run.month - 1]}</span>
                   <span className="text-xs font-bold">{run.year}</span>
                 </div>
                 <div>
@@ -66,9 +67,9 @@ function MyPayslips({ onOpen }) {
               <StatusPill status={run.status === 'paid' ? 'paid' : 'published'} label={run.status === 'paid' ? 'Paid' : 'Published'} />
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-xl bg-slate-50 py-2"><p className="text-[10px] uppercase text-slate-400">Gross</p><p className="text-sm font-semibold">{money(p.gross_pay)}</p></div>
-              <div className="rounded-xl bg-slate-50 py-2"><p className="text-[10px] uppercase text-slate-400">Deductions</p><p className="text-sm font-semibold text-rose-600">{money(p.total_deductions)}</p></div>
-              <div className="rounded-xl bg-blue-50 py-2"><p className="text-[10px] uppercase text-blue-500">Net pay</p><p className="text-sm font-bold text-blue-700">{money(p.net_pay)}</p></div>
+              <div className="rounded-xl bg-slate-50 py-2"><p className="text-[11px] uppercase text-slate-400">Gross</p><p className="text-sm font-semibold">{money(Number(p.gross_pay) + lopAmount(p.breakdown_json))}</p></div>
+              <div className="rounded-xl bg-slate-50 py-2"><p className="text-[11px] uppercase text-slate-400">Deductions</p><p className="text-sm font-semibold text-rose-600">{money(Number(p.total_deductions) + lopAmount(p.breakdown_json))}</p></div>
+              <div className="rounded-xl bg-blue-50 py-2"><p className="text-[11px] uppercase text-blue-500">Net pay</p><p className="text-sm font-bold text-blue-700">{money(p.net_pay)}</p></div>
             </div>
             <div className="mt-4 flex gap-2">
               <Button variant="secondary" size="sm" icon={Eye} className="flex-1"
@@ -112,7 +113,7 @@ function AllPayslips({ onOpen }) {
               { key: 'employee', label: 'Employee', render: (p) => <div><p className="font-medium text-slate-800">{p.employee?.first_name} {p.employee?.last_name}</p><p className="text-xs text-slate-400">{p.employee?.employee_code}</p></div> },
               { key: 'period', label: 'Period', render: (p) => monthLabel(p.payroll_run.month, p.payroll_run.year) },
               { key: 'state', label: 'Status', render: (p) => <StatusPill status={p.published_at ? 'published' : 'draft'} label={p.published_at ? 'Published' : 'In review'} /> },
-              { key: 'gross_pay', label: 'Gross', align: 'right', render: (p) => money(p.gross_pay) },
+              { key: 'gross_pay', label: 'Gross', align: 'right', render: (p) => money(Number(p.gross_pay) + lopAmount(p.breakdown_json)) },
               { key: 'net_pay', label: 'Net', align: 'right', render: (p) => <b>{money(p.net_pay)}</b> },
               { key: 'pdf', label: '', align: 'right', render: (p) => (
                 <Button size="sm" variant="ghost" icon={Download} onClick={(e) => { e.stopPropagation(); openPayslipPdf(p.id, { download: true }) }}>PDF</Button>

@@ -54,7 +54,7 @@ function Feed() {
       {data.data.map((a) => (
         <Card key={a.id} className={cn(a.category === 'urgent' && 'border-rose-200', a.pinned && 'ring-1 ring-blue-200')}>
           <div className="flex flex-wrap items-center gap-2">
-            {a.pinned && <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700"><Pin size={12} /> Pinned</span>}
+            {a.pinned && <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-blue-700"><Pin size={12} /> Pinned</span>}
             <StatusPill tone={CATEGORY_TONE[a.category]} label={CATEGORY_LABEL[a.category]} dot={false} />
             {!a.read_at && <StatusPill tone="blue" label="New" />}
             <span className="ml-auto text-xs text-slate-400">{dateLabel(a.published_at)}{a.author && ` · ${a.author}`}</span>
