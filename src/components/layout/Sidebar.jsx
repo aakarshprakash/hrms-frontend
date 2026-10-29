@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore'
 import { SECTIONS, PLATFORM_SECTION, isAllowed } from '@/lib/navigation'
 import logoFull from '@/assets/brand/logo-full.png'
 import icon from '@/assets/brand/icon.png'
+import { TrialCard } from './TrialCountdown'
 
 function matchesPrefix(pathname, prefix) {
   return (Array.isArray(prefix) ? prefix : [prefix]).some((p) => pathname === p || pathname.startsWith(p + '/'))
@@ -116,6 +117,8 @@ export default function Sidebar({ open, onToggle }) {
             </div>
           </div>
         )}
+
+        {open && <TrialCard />}
 
         <nav className="flex-1 overflow-y-auto px-3 py-3">
           {sections.map((section, i) => {

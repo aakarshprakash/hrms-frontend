@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { CreditCard, Check, Download, ExternalLink, AlertTriangle, Users, Building2, Save, CheckCircle2 } from 'lucide-react'
-import { billingApi, FEATURE_LABELS } from '@/lib/api/billing'
+import { CreditCard, Check, Download, AlertTriangle, Users, Building2, Save, CheckCircle2, Zap } from 'lucide-react'
+import { billingApi, FEATURE_LABELS, DEFAULT_CYCLES, CYCLE_NOUN } from '@/lib/api/billing'
+import { apiError } from '@/lib/api/axios'
+import { payInvoice } from '@/lib/razorpay'
+import CycleToggle from '@/components/billing/CycleToggle'
 import { saveBlob } from '@/lib/api/payroll'
 import { refreshSession } from '@/lib/session'
 import { money, dateLabel } from '@/lib/format'
@@ -67,7 +70,7 @@ function CurrentPlan({ data }) {
           </div>
           <p className="mt-1 text-sm text-slate-500">
             {s.status === 'trialing' && `${s.trial_days_left} day(s) left in your trial${s.plan_confirmed_at ? ' — billing starts when it ends.' : '. Choose a plan to keep every module.'}`}
-            {s.status === 'active' && s.current_period_end && `${s.billing_cycle === 'yearly' ? 'Yearly' : 'Monthly'} · renews ${dateLabel(s.current_period_end)}`}
+            {s.status === 'active' && s.current_period_end && `${(data.cycles ?? DEFAULT_CYCLES).find((c) => c.key === s.billing_cycle)?.label ?? 'Monthly'} · renews ${dateLabel(s.current_period_end)}`}
             {s.status === 'active' && !s.current_period_end && 'No renewal needed.'}
             {s.status === 'expired' && 'You’re on the free core (attendance, leave, self-service). Choose a plan to switch the other modules back on.'}
             {s.status === 'past_due' && 'An invoice is overdue — please pay to avoid interruption.'}
@@ -93,6 +96,18 @@ function CurrentPlan({ data }) {
           </div>
         )}
       </div>
+      {s.plan?.features?.length > 0 && (
+        <div className="mt-5 border-t border-slate-100 pt-4">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Included in your plan</p>
+          <div className="flex flex-wrap gap-1.5">
+            {s.plan.features.filter((f) => FEATURE_LABELS[f]).map((f) => (
+              <span key={f} className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800">
+                <Check size={12} />{FEATURE_LABELS[f]}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       <ErrorBanner error={cancel.error ?? resume.error} className="mt-3" />
     </Card>
   )
@@ -124,27 +139,46 @@ function Unpaid({ data }) {
 function Plans({ data }) {
   const qc = useQueryClient()
   const current = data.subscription
+  const cycles = data.cycles?.length ? data.cycles : DEFAULT_CYCLES
   const [cycle, setCycle] = useState(current?.billing_cycle ?? 'monthly')
+  const [notice, setNotice] = useState(null)
+  const trialing = current?.status === 'trialing'
+  const refresh = async () => {
+    await refreshSession().catch(() => {})
+    qc.invalidateQueries({ queryKey: ['billing'] })
+    qc.invalidateQueries({ queryKey: ['billing-invoices'] })
+  }
   const choose = useMutation({
-    mutationFn: (code) => billingApi.choosePlan({ plan_code: code, billing_cycle: cycle }),
-    onSuccess: async () => { await refreshSession().catch(() => {}); qc.invalidateQueries({ queryKey: ['billing'] }); qc.invalidateQueries({ queryKey: ['billing-invoices'] }) },
+    mutationFn: ({ code, startNow }) => billingApi.choosePlan({ plan_code: code, billing_cycle: cycle, start_now: startNow }).then((r) => r.data),
+    onSuccess: async (res, { startNow }) => {
+      await refresh()
+      setNotice(res.message)
+      // Started a paid period: take the person straight to payment.
+      if (startNow && res.invoice && data.online_payment) {
+        try {
+          const paid = await payInvoice(res.invoice)
+          setNotice(paid.message)
+          await refresh()
+        } catch (err) {
+          if (!err.cancelled) setNotice(apiError(err))
+        }
+      }
+    },
   })
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-lg font-semibold text-slate-900">Plans</p>
-        <div className="flex rounded-xl bg-slate-100 p-1 text-[13px] font-medium">
-          {[['monthly', 'Monthly'], ['yearly', `Yearly · ${12 - data.yearly_months_charged} months free`]].map(([key, label]) => (
-            <button key={key} onClick={() => setCycle(key)} className={cn('rounded-lg px-3 py-1.5', cycle === key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500')}>{label}</button>
-          ))}
-        </div>
+        <CycleToggle cycles={cycles} value={cycle} onChange={setCycle} />
       </div>
       <ErrorBanner error={choose.error} />
+      {notice && <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm text-blue-800"><CheckCircle2 size={16} />{notice}</div>}
       <div className="grid gap-4 lg:grid-cols-3">
         {data.plans.map((p) => {
           const isCurrent = current?.plan?.code === p.code && current?.is_live
-          const price = cycle === 'yearly' ? p.yearly_estimate : p.monthly_estimate
+          const price = p.estimates?.[cycle] ?? (cycle === 'yearly' ? p.yearly_estimate : p.monthly_estimate)
+          const busy = choose.isPending && choose.variables?.code === p.code
           return (
             <Card key={p.code} className={cn('flex flex-col', isCurrent && 'ring-2 ring-blue-500')}>
               <div className="flex items-center justify-between">
@@ -152,7 +186,7 @@ function Plans({ data }) {
                 {isCurrent && <StatusPill tone="blue" label="Current" dot={false} />}
               </div>
               <p className="mt-1 min-h-[40px] text-sm text-slate-500">{p.description}</p>
-              <p className="mt-3 text-3xl font-bold tracking-tight text-slate-900">{money(price)}<span className="text-sm font-medium text-slate-400"> /{cycle === 'yearly' ? 'year' : 'month'}</span></p>
+              <p className="mt-3 text-3xl font-bold tracking-tight text-slate-900">{money(price)}<span className="text-sm font-medium text-slate-400"> /{CYCLE_NOUN[cycle] ?? cycle}</span></p>
               <p className="text-xs text-slate-500">
                 for your {data.usage.employees} employees · {money(p.base_price)} incl. {p.included_employees}, then {money(p.per_employee_price)}/employee · + GST
               </p>
@@ -165,10 +199,16 @@ function Plans({ data }) {
                 </li>
               </ul>
               <Button className="mt-5 w-full" variant={isCurrent ? 'secondary' : 'primary'}
-                disabled={isCurrent && current?.billing_cycle === cycle} loading={choose.isPending && choose.variables === p.code}
-                onClick={() => choose.mutate(p.code)}>
-                {isCurrent ? (current?.billing_cycle === cycle ? 'Your plan' : `Switch to ${cycle}`) : `Choose ${p.name}`}
+                disabled={(isCurrent && current?.billing_cycle === cycle) || choose.isPending} loading={busy && !choose.variables?.startNow}
+                onClick={() => choose.mutate({ code: p.code, startNow: false })}>
+                {isCurrent ? (current?.billing_cycle === cycle ? 'Your plan' : `Switch to ${cycles.find((c) => c.key === cycle)?.label.toLowerCase()}`) : `Choose ${p.name}`}
               </Button>
+              {trialing && data.online_payment && (
+                <Button className="mt-2 w-full" variant="ghost" size="sm" icon={Zap} disabled={choose.isPending} loading={busy && choose.variables?.startNow}
+                  onClick={() => { if (confirm(`End your trial and start ${p.name} today? The first invoice is issued now.`)) choose.mutate({ code: p.code, startNow: true }) }}>
+                  Skip trial & pay now
+                </Button>
+              )}
             </Card>
           )
         })}
@@ -183,7 +223,16 @@ function Invoices({ online }) {
     queryFn: () => billingApi.invoices().then((r) => r.data),
   })
   const pdf = useMutation({ mutationFn: (i) => billingApi.invoicePdf(i.id).then((res) => saveBlob(res.data, `${i.number}.pdf`, 'application/pdf')) })
-  const pay = useMutation({ mutationFn: (i) => billingApi.pay(i.id).then((r) => { window.location.href = r.data.data.url }) })
+  const qc = useQueryClient()
+  const pay = useMutation({
+    mutationFn: (i) => payInvoice(i).catch((err) => { if (err.cancelled) return null; throw err }),
+    onSuccess: async (res) => {
+      if (!res) return
+      await refreshSession().catch(() => {})
+      qc.invalidateQueries({ queryKey: ['billing'] })
+      qc.invalidateQueries({ queryKey: ['billing-invoices'] })
+    },
+  })
 
   return (
     <Card padded={false}>
@@ -197,13 +246,14 @@ function Invoices({ online }) {
             { key: 'status', label: 'Status', render: (i) => <StatusPill status={i.status === 'issued' ? (i.overdue ? 'expired' : 'pending') : i.status} label={i.status === 'issued' ? (i.overdue ? 'Overdue' : `Due ${dateLabel(i.due_on)}`) : undefined} /> },
             { key: 'actions', label: '', align: 'right', render: (i) => (
               <div className="flex justify-end gap-2">
-                {online && i.status === 'issued' && <Button size="sm" icon={ExternalLink} loading={pay.isPending && pay.variables?.id === i.id} onClick={() => pay.mutate(i)}>Pay now</Button>}
+                {online && i.status === 'issued' && <Button size="sm" icon={CreditCard} loading={pay.isPending && pay.variables?.id === i.id} onClick={() => pay.mutate(i)}>Pay now</Button>}
                 <Button size="sm" variant="secondary" icon={Download} loading={pdf.isPending && pdf.variables?.id === i.id} onClick={() => pdf.mutate(i)}>PDF</Button>
               </div>
             ) },
           ]} />
       )}
-      <ErrorBanner error={pay.error ?? pdf.error} className="m-4" />
+      <ErrorBanner error={pay.error ?? pdf.error} message={pay.error ? apiError(pay.error) : undefined} className="m-4" />
+      {pay.data?.message && <p className="m-4 flex items-center gap-2 text-sm text-emerald-700"><CheckCircle2 size={16} />{pay.data.message}</p>}
     </Card>
   )
 }

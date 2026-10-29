@@ -13,12 +13,22 @@ export const attendanceApi = {
   approveRegularization: (id, data) => api.post(`/attendance/regularizations/${id}/approve`, data),
   rejectRegularization: (id, data) => api.post(`/attendance/regularizations/${id}/reject`, data),
 
-  reportSummary: (params) => api.get('/attendance/reports/summary', { params }),
-  reportSummaryExport: (params) => api.get('/attendance/reports/summary/export', { params, responseType: 'blob' }),
-  reportDaily: (params) => api.get('/attendance/reports/daily', { params }),
-  reportDailyExport: (params) => api.get('/attendance/reports/daily/export', { params, responseType: 'blob' }),
-  musterRoll: (params) => api.get('/attendance/reports/muster-roll', { params }),
   exceptions: (params) => api.get('/attendance/exceptions', { params }),
+
+  // Unified reports
+  reportOptions: () => api.get('/attendance/report-options'),
+  report: (type, params) => api.get(`/attendance/report/${type}`, { params }),
+  reportExport: (type, params) => api.get(`/attendance/report/${type}/export`, { params, responseType: 'blob' }),
+
+  // Geo-fencing
+  geofences: () => api.get('/geofences'),
+  saveGeofence: (branchId, data) => api.put(`/branches/${branchId}/geofence`, data),
+  saveGeofenceMaster: (data) => api.put('/geofence/settings', data),
+  createSite: (branchId, data) => api.post(`/branches/${branchId}/geo-sites`, data),
+  updateSite: (id, data) => api.put(`/geo-sites/${id}`, data),
+  deleteSite: (id) => api.delete(`/geo-sites/${id}`),
+  geofenceEmployees: (params) => api.get('/geofence/employees', { params }),
+  assignGeofence: (data) => api.post('/geofence/employees', data),
 
   // Punch pipeline
   reprocess: (data) => api.post('/attendance/reprocess', data),

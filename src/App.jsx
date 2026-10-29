@@ -13,8 +13,8 @@ import DepartmentsPage from '@/pages/departments/DepartmentsPage'
 import DesignationsPage from '@/pages/departments/DesignationsPage'
 import AttendancePage from '@/pages/attendance/AttendancePage'
 import RegularizationPage from '@/pages/attendance/RegularizationPage'
-import AttendanceReportsPage from '@/pages/attendance/AttendanceReportsPage'
-import MusterRollPage from '@/pages/attendance/MusterRollPage'
+import AttendanceReportsHub from '@/pages/attendance/AttendanceReportsHub'
+import GeofencePage from '@/pages/settings/GeofencePage'
 import AttendanceExceptionsPage from '@/pages/attendance/AttendanceExceptionsPage'
 import LeavePage from '@/pages/leaves/LeavePage'
 import LeaveSettingsPage from '@/pages/leaves/LeaveSettingsPage'
@@ -33,6 +33,13 @@ import PayslipPage from '@/pages/payroll/PayslipPage'
 import PayrollDashboardPage from '@/pages/payroll/PayrollDashboardPage'
 import PayrollSettingsPage from '@/pages/payroll/PayrollSettingsPage'
 import CompliancePage from '@/pages/payroll/CompliancePage'
+import LoansPage from '@/pages/payroll/LoansPage'
+import HelpdeskPage from '@/pages/care/HelpdeskPage'
+import TicketPage from '@/pages/care/TicketPage'
+import AnnouncementsPage from '@/pages/care/AnnouncementsPage'
+import BonusArrearsPage from '@/pages/payroll/BonusArrearsPage'
+import TaxDeclarationPage from '@/pages/payroll/TaxDeclarationPage'
+import TaxReviewPage from '@/pages/payroll/TaxReviewPage'
 import SettingsPage from '@/pages/settings/SettingsPage'
 import QuickSetupPage from '@/pages/settings/QuickSetupPage'
 import BranchesPage from '@/pages/settings/BranchesPage'
@@ -52,6 +59,7 @@ import AuditLogPage from '@/pages/settings/AuditLogPage'
 import BillingPage from '@/pages/settings/BillingPage'
 import SignupPage from '@/pages/auth/SignupPage'
 import PlatformPlansPage from '@/pages/platform/PlatformPlansPage'
+import PlatformBillingPage from '@/pages/platform/PlatformBillingPage'
 import RequireFeature from '@/routes/RequireFeature'
 import NotificationSettingsPage from '@/pages/settings/NotificationSettingsPage'
 import AccountNotificationsPage from '@/pages/auth/AccountNotificationsPage'
@@ -86,6 +94,7 @@ export default function App() {
               <Route path="/platform" element={<PlatformDashboardPage />} />
               <Route path="/platform/companies/:id" element={<PlatformCompanyPage />} />
               <Route path="/platform/plans" element={<PlatformPlansPage />} />
+              <Route path="/platform/billing" element={<PlatformBillingPage />} />
 
               <Route path="/account/security" element={<ChangePasswordPage />} />
               <Route path="/account/notifications" element={<AccountNotificationsPage />} />
@@ -105,8 +114,11 @@ export default function App() {
               <Route path="/attendance" element={<AttendancePage />} />
               <Route path="/attendance/manage" element={<TeamAttendancePage />} />
               <Route path="/attendance/regularizations" element={<RegularizationPage />} />
-              <Route path="/attendance/reports" element={<AttendanceReportsPage />} />
-              <Route path="/attendance/muster-roll" element={<MusterRollPage />} />
+              <Route path="/attendance/reports" element={<AttendanceReportsHub />} />
+              {/* Old report URLs land on the matching report */}
+              <Route path="/attendance/monthly-punches" element={<Navigate to="/attendance/reports?type=daily" replace />} />
+              <Route path="/attendance/muster-roll" element={<Navigate to="/attendance/reports?type=muster" replace />} />
+              <Route path="/settings/geofence" element={<RequireFeature feature="geofence"><GeofencePage /></RequireFeature>} />
               <Route path="/attendance/exceptions" element={<AttendanceExceptionsPage />} />
               <Route path="/attendance/punches" element={<PunchLogPage />} />
 
@@ -116,6 +128,11 @@ export default function App() {
               <Route path="/leaves/balances" element={<LeaveBalancesPage />} />
               <Route path="/leaves/settings" element={<LeaveSettingsPage />} />
               <Route path="/approvals" element={<ApprovalsPage />} />
+
+              {/* Employee care */}
+              <Route path="/helpdesk" element={<HelpdeskPage />} />
+              <Route path="/helpdesk/:id" element={<TicketPage />} />
+              <Route path="/announcements" element={<AnnouncementsPage />} />
 
               {/* Phase 2: Shifts */}
               <Route path="/shifts/roster" element={<RequireFeature feature="shifts"><RosterPage /></RequireFeature>} />
@@ -132,6 +149,10 @@ export default function App() {
               <Route path="/payroll/payslips" element={<RequireFeature feature="payroll"><PayslipPage /></RequireFeature>} />
               <Route path="/payroll/settings" element={<RequireFeature feature="payroll"><PayrollSettingsPage /></RequireFeature>} />
               <Route path="/payroll/compliance" element={<RequireFeature feature="statutory"><CompliancePage /></RequireFeature>} />
+              <Route path="/payroll/loans" element={<RequireFeature feature="payroll"><LoansPage /></RequireFeature>} />
+              <Route path="/payroll/bonus-arrears" element={<RequireFeature feature="payroll"><BonusArrearsPage /></RequireFeature>} />
+              <Route path="/payroll/tax-declaration" element={<RequireFeature feature="payroll"><TaxDeclarationPage /></RequireFeature>} />
+              <Route path="/payroll/tax-declarations" element={<RequireFeature feature="payroll"><TaxReviewPage /></RequireFeature>} />
 
               {/* Phase 4: Certificates */}
               <Route path="/certificates" element={<RequireFeature feature="certificates"><CertificatesPage /></RequireFeature>} />
