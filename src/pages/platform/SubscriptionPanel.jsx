@@ -70,6 +70,7 @@ function SubscriptionForm({ companyId, data }) {
           <Field label="Billing">
             <Select value={form.billing_cycle} onChange={(e) => set({ billing_cycle: e.target.value })}>
               <option value="monthly">Monthly</option>
+              <option value="half_yearly">6 months</option>
               <option value="yearly">Yearly</option>
             </Select>
           </Field>

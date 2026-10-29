@@ -33,6 +33,7 @@ const schema = z.object({
   reporting_manager_id: optional(z.coerce.number()),
   shift_id: optional(z.coerce.number()),
   work_location: optional(z.string()),
+  geofence_mode: z.enum(['branch', 'anywhere']).optional(),
   // Step 3 — personal details (optional)
   phone: optional(z.string()),
   date_of_birth: optional(z.string()),
@@ -56,7 +57,7 @@ const schema = z.object({
 
 const STEPS = [
   { key: 'basic', label: 'Basic Details', icon: User, fields: ['first_name', 'last_name', 'email', 'employee_code', 'branch_id', 'date_of_joining', 'employment_type'] },
-  { key: 'job', label: 'Job Details', icon: Briefcase, fields: ['department_id', 'designation_id', 'reporting_manager_id', 'shift_id', 'work_location'] },
+  { key: 'job', label: 'Job Details', icon: Briefcase, fields: ['department_id', 'designation_id', 'reporting_manager_id', 'shift_id', 'work_location', 'geofence_mode'] },
   { key: 'personal', label: 'Personal Info', icon: Cake, fields: ['phone', 'date_of_birth', 'gender', 'marital_status'] },
   { key: 'account', label: 'Account & Access', icon: KeyRound, fields: ['create_login', 'password_option', 'password', 'role', 'send_welcome_email'] },
 ]
@@ -371,6 +372,12 @@ export default function AddEmployeeWizard() {
                 </Field>
                 <Field label="Work Location">
                   <input {...register('work_location')} className={inputCls()} placeholder="e.g. Head Office, Remote" />
+                </Field>
+                <Field label="Geo-fencing">
+                  <select {...register('geofence_mode')} className={inputCls()}>
+                    <option value="branch">On — punch only at branch sites</option>
+                    <option value="anywhere">Off — can punch anywhere (sales, travelling)</option>
+                  </select>
                 </Field>
               </div>
             </div>

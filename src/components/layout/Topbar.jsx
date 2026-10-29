@@ -12,6 +12,7 @@ import { useRole } from '@/hooks/useRole'
 import { Avatar } from '@/components/ui/kit'
 import NotificationBell from './NotificationBell'
 import CommandPalette from './CommandPalette'
+import { TrialChip } from './TrialCountdown'
 import { cn } from '@/lib/utils'
 
 function Dropdown({ open, onClose, children, className }) {
@@ -108,6 +109,8 @@ export default function Topbar({ onMenuClick }) {
         </button>
 
         <div className="flex-1" />
+
+        <TrialChip />
 
         {creates.length > 0 && (
           <div className="relative">

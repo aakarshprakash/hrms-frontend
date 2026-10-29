@@ -362,6 +362,7 @@ export default function EmployeeDetailPage() {
                   ['Probation Ends', fmtDate(emp.probation_end_date)],
                   ['Notice Period', emp.notice_period_days != null ? `${emp.notice_period_days} days` : null],
                   ['Work Location', emp.work_location],
+                  ['Geo-fencing', { anywhere: 'Off — can punch anywhere', sites: 'On — specific sites' }[emp.geofence_mode] ?? 'On — branch sites'],
                   ['Reporting Manager', emp.reporting_manager ? `${emp.reporting_manager.first_name} ${emp.reporting_manager.last_name}` : null],
                 ]} />
               </DetailCard>

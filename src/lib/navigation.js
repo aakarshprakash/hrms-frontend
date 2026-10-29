@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Clock, CalendarDays, IndianRupee, Award, Building, Settings, Sparkles, ShieldCheck,
-  History, Globe2, Inbox, BellRing, CreditCard, Layers, KeyRound,
+  History, Globe2, Inbox, BellRing, CreditCard, Layers, KeyRound, Wallet, CalendarClock, Megaphone, LifeBuoy,
 } from 'lucide-react'
 
 /*
@@ -15,6 +15,8 @@ export const SECTIONS = [
     items: [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
       { to: '/approvals', icon: Inbox, label: 'Approvals', perms: ['leaves.approve'], badge: 'approvals' },
+      { to: '/announcements', icon: Megaphone, label: 'Announcements' },
+      { to: '/helpdesk', icon: LifeBuoy, label: 'Helpdesk', exact: false },
       { to: '/insights', icon: Sparkles, label: 'AI Insights', perms: ['insights.view'], feature: 'insights' },
     ],
   },
@@ -37,21 +39,25 @@ export const SECTIONS = [
     label: 'Time',
     items: [
       {
-        label: 'Attendance', icon: Clock, group: true, prefix: ['/attendance', '/shifts', '/settings/shifts', '/settings/biometric', '/overtime'],
+        label: 'Attendance', icon: Clock, group: true, prefix: ['/attendance', '/overtime'],
         children: [
           { to: '/attendance', label: 'My Attendance' },
           { to: '/attendance/manage', label: 'Team Attendance', perms: ['attendance.view', 'attendance.manage'] },
+          { to: '/attendance/reports', label: 'Reports', perms: ['attendance.view'] },
           { to: '/attendance/regularizations', label: 'Regularization' },
           { to: '/overtime', label: 'Overtime' },
-          { to: '/attendance/reports', label: 'Reports', perms: ['attendance.view'] },
-          { to: '/attendance/monthly-punches', label: 'Monthly Punch Report', perms: ['attendance.view', 'attendance.manage'] },
-          { to: '/attendance/muster-roll', label: 'Muster Roll', perms: ['attendance.view'] },
           { to: '/attendance/exceptions', label: 'Exceptions', perms: ['attendance.view'] },
           { to: '/attendance/punches', label: 'Punch Log', perms: ['attendance.view', 'attendance.manage'] },
+        ],
+      },
+      {
+        label: 'Shifts & Rules', icon: CalendarClock, group: true, prefix: ['/shifts', '/settings/shifts', '/settings/biometric', '/settings/geofence'],
+        children: [
           { to: '/shifts/roster', label: 'Shift Roster', perms: ['attendance.view', 'shifts.manage'], feature: 'shifts' },
           { to: '/shifts/swaps', label: 'Shift Swaps', feature: 'shifts' },
           { to: '/shifts/holidays', label: 'Holidays' },
           { to: '/settings/shifts', label: 'Shifts', perms: ['shifts.manage'] },
+          { to: '/settings/geofence', label: 'Geo-fencing', perms: ['settings.manage'], feature: 'geofence' },
           { to: '/settings/biometric', label: 'Biometric Devices', perms: ['settings.manage'], feature: 'biometric' },
         ],
       },
@@ -74,11 +80,22 @@ export const SECTIONS = [
           { to: '/payroll', label: 'Overview' },
           { to: '/payroll/runs', label: 'Payroll Runs' },
           { to: '/payroll/payslips', label: 'Payslips' },
+          { to: '/payroll/loans', label: 'Loans & Advances' },
+          { to: '/payroll/bonus-arrears', label: 'Bonus & Arrears', perms: ['payroll.manage'] },
+          { to: '/payroll/tax-declarations', label: 'Tax Declarations', perms: ['payroll.manage'] },
+          { to: '/payroll/tax-declaration', label: 'My Tax Declaration' },
           { to: '/payroll/compliance', label: 'Compliance', perms: ['payroll.view', 'payroll.manage', 'reports.view'], feature: 'statutory' },
           { to: '/payroll/settings', label: 'Pay Settings', perms: ['payroll.manage'] },
         ],
       },
-      { to: '/payroll/payslips', icon: IndianRupee, label: 'My Payslips', notPerms: ['payroll.view', 'payroll.manage'] },
+      {
+        label: 'My Pay', icon: Wallet, group: true, prefix: ['/payroll/payslips', '/payroll/loans', '/payroll/tax-declaration'], notPerms: ['payroll.view', 'payroll.manage'], feature: 'payroll',
+        children: [
+          { to: '/payroll/payslips', label: 'My Payslips' },
+          { to: '/payroll/tax-declaration', label: 'Tax Declaration' },
+          { to: '/payroll/loans', label: 'My Loans' },
+        ],
+      },
       { to: '/certificates', icon: Award, label: 'Letters & Certificates', feature: 'certificates' },
     ],
   },
@@ -99,6 +116,7 @@ export const PLATFORM_SECTION = {
   label: 'Platform',
   items: [
     { to: '/platform', icon: Globe2, label: 'Organisations', exact: true },
+    { to: '/platform/billing', icon: Wallet, label: 'Billing & Revenue' },
     { to: '/platform/plans', icon: Layers, label: 'Plans' },
   ],
 }
