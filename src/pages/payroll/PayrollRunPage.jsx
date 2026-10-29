@@ -56,7 +56,7 @@ export default function PayrollRunPage() {
                 <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-11 w-11 flex-col items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-700">
-                      <span className="text-[10px] font-bold uppercase leading-none">{MONTHS[group.month - 1].slice(0, 3)}</span>
+                      <span className="text-[11px] font-bold uppercase leading-none">{MONTHS[group.month - 1].slice(0, 3)}</span>
                       <span className="text-sm font-bold leading-tight">{group.year}</span>
                     </div>
                     <div>

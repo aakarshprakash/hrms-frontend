@@ -80,7 +80,7 @@ export default function CommandPalette({ open, onClose }) {
           <input ref={inputRef} value={query} onChange={(e) => { setQuery(e.target.value); setCursor(0) }} onKeyDown={onKey}
             placeholder={platformOnly ? 'Search pages…' : 'Search people, pages and actions…'}
             className="h-12 flex-1 border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400" />
-          <kbd className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">ESC</kbd>
+          <kbd className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium text-slate-500">ESC</kbd>
         </div>
         <div className="max-h-[55vh] overflow-y-auto p-2">
           {results.length === 0 && <p className="px-3 py-8 text-center text-sm text-slate-500">No matches for “{query}”.</p>}
@@ -90,14 +90,14 @@ export default function CommandPalette({ open, onClose }) {
             const Icon = item.icon ?? (item.person ? User : ArrowRight)
             return (
               <div key={`${item.kind}-${item.to}-${item.label}`}>
-                {header && <p className="px-2.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{header}</p>}
+                {header && <p className="px-2.5 pb-1 pt-2 text-[12px] font-semibold uppercase tracking-wider text-slate-400">{header}</p>}
                 <button onMouseEnter={() => setCursor(i)} onClick={() => go(item)}
                   className={cn('flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left', cursor === i ? 'bg-blue-50' : 'hover:bg-slate-50')}>
                   {item.person
                     ? <Avatar name={item.label} size="sm" />
                     : <span className={cn('flex h-7 w-7 items-center justify-center rounded-md', cursor === i ? 'bg-white text-blue-600' : 'bg-slate-100 text-slate-500')}><Icon size={15} /></span>}
                   <span className="min-w-0 flex-1">
-                    <span className={cn('block truncate text-[13px] font-medium', cursor === i ? 'text-blue-700' : 'text-slate-800')}>{item.label}</span>
+                    <span className={cn('block truncate text-[14px] font-medium', cursor === i ? 'text-blue-700' : 'text-slate-800')}>{item.label}</span>
                     {(item.hint || (item.kind === 'Pages' && item.group)) && <span className="block truncate text-xs text-slate-500">{item.hint ?? item.group}</span>}
                   </span>
                   {cursor === i && <CornerDownLeft size={14} className="text-blue-500" />}
@@ -106,7 +106,7 @@ export default function CommandPalette({ open, onClose }) {
             )
           })}
         </div>
-        <div className="flex items-center gap-4 border-t border-slate-100 bg-slate-50/70 px-4 py-2 text-[11px] text-slate-500">
+        <div className="flex items-center gap-4 border-t border-slate-100 bg-slate-50/70 px-4 py-2 text-[12px] text-slate-500">
           <span><kbd className="font-sans">↑↓</kbd> to move</span><span><kbd className="font-sans">↵</kbd> to open</span>
         </div>
       </div>

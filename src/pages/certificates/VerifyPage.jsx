@@ -61,7 +61,7 @@ export default function VerifyPage() {
                   <p className="text-xs text-emerald-700">Issued through PeopleNex HRMS</p>
                 </div>
               </div>
-              <dl className="divide-y divide-slate-100 text-[13px]">
+              <dl className="divide-y divide-slate-100 text-[14px]">
                 {[
                   ['Number', checked],
                   ['Type', result.type],
@@ -85,7 +85,7 @@ export default function VerifyPage() {
               <XCircle size={22} className="mt-0.5 shrink-0 text-rose-500" />
               <div>
                 <p className="font-semibold text-rose-800">No match found</p>
-                <p className="mt-0.5 text-[13px] text-rose-700">Nothing was issued with the number <strong>{checked}</strong>. Check it and try again.</p>
+                <p className="mt-0.5 text-[14px] text-rose-700">Nothing was issued with the number <strong>{checked}</strong>. Check it and try again.</p>
               </div>
             </div>
           ))}

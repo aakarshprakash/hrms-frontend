@@ -103,10 +103,10 @@ export default function PayrollDashboardPage() {
                     <li key={s.key} className="flex items-center gap-3 py-2.5">
                       <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-medium text-slate-800">{s.label}</p>
+                        <p className="text-[14px] font-medium text-slate-800">{s.label}</p>
                         <p className="text-xs text-slate-500">{s.hint}</p>
                       </div>
-                      <span className="text-[13px] font-semibold tabular-nums text-slate-900">{money(summary.statutory?.[s.key] ?? 0)}</span>
+                      <span className="text-[14px] font-semibold tabular-nums text-slate-900">{money(summary.statutory?.[s.key] ?? 0)}</span>
                     </li>
                   ))}
                 </ul>
@@ -122,7 +122,7 @@ export default function PayrollDashboardPage() {
                       const share = summary.total_gross ? (d.total_gross / summary.total_gross) * 100 : 0
                       return (
                         <li key={d.name}>
-                          <div className="mb-1 flex items-center justify-between gap-3 text-[13px]">
+                          <div className="mb-1 flex items-center justify-between gap-3 text-[14px]">
                             <span className="truncate font-medium text-slate-700">{d.name}
                               <span className="ml-1.5 font-normal text-slate-400">{d.employee_count} {d.employee_count === 1 ? 'person' : 'people'}</span>
                             </span>

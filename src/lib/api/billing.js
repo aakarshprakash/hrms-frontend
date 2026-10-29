@@ -12,6 +12,8 @@ export const billingApi = {
   checkout: (id) => api.post(`/billing/invoices/${id}/checkout`),
   verifyPayment: (data) => api.post('/billing/payments/verify', data),
   paymentFailed: (data) => api.post('/billing/payments/failed', data),
+  redeemLicense: (key) => api.post('/billing/license', { key }),
+  setAutopay: (autopay) => api.put('/billing/autopay', { autopay }),
 
   // Public
   publicConfig: () => api.get('/public/config'),
@@ -32,6 +34,11 @@ export const billingApi = {
   allInvoices: (params) => api.get('/platform/billing/invoices', { params }),
   allPayments: (params) => api.get('/platform/billing/payments', { params }),
   platformInvoicePdf: (id) => api.get(`/platform/invoices/${id}/pdf`, { responseType: 'blob' }),
+  licenses: (params) => api.get('/platform/licenses', { params }),
+  createLicenses: (data) => api.post('/platform/licenses', data),
+  revokeLicense: (id) => api.post(`/platform/licenses/${id}/revoke`),
+  platformBillingSettings: () => api.get('/platform/billing/settings'),
+  updatePlatformBillingSettings: (data) => api.put('/platform/billing/settings', data),
 }
 
 /** Monthly / 6 months / yearly, as the API describes them (fallback for older APIs). */

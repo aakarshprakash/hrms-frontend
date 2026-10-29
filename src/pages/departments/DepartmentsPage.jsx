@@ -165,7 +165,7 @@ export default function DepartmentsPage() {
             <Button variant="danger" icon={Trash2} loading={deleteMut.isPending} onClick={() => deleteMut.mutate(deleting.id)}>Delete</Button>
           </>}>
           <ErrorBanner error={deleteMut.error} className="mb-3" />
-          <p className="text-[13px] text-slate-600">
+          <p className="text-[14px] text-slate-600">
             Delete <strong className="text-slate-900">{deleting.name}</strong> ({deleting.branch?.name})?
             {deleting.employees_count > 0 && ` ${deleting.employees_count} active ${deleting.employees_count === 1 ? 'person is' : 'people are'} still assigned to it.`}
             {' '}Designations linked to it are affected too.

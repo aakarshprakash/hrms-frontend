@@ -120,7 +120,7 @@ function TemplateEditor({ id, template }) {
         </>} />
 
       {toast && (
-        <div className={cn('mb-4 rounded-lg border px-4 py-2.5 text-[13px] font-medium',
+        <div className={cn('mb-4 rounded-lg border px-4 py-2.5 text-[14px] font-medium',
           toast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700')}>{toast.msg}</div>
       )}
 
@@ -152,7 +152,7 @@ function TemplateEditor({ id, template }) {
         {showPreview && (
           <Card padded={false} className="xl:sticky xl:top-20">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-              <p className="text-[15px] font-semibold text-slate-900">Preview</p>
+              <p className="text-[16px] font-semibold text-slate-900">Preview</p>
               <p className="flex items-center gap-3 text-xs text-slate-500">
                 <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-blue-100 ring-1 ring-blue-300" />Sample data</span>
                 <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-rose-100 ring-1 ring-rose-300" />Unknown token</span>

@@ -58,7 +58,7 @@ export default function NotificationBell() {
         className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800">
         <Bell size={17} />
         {count > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[11px] font-bold text-white">
             {count > 99 ? '99+' : count}
           </span>
         )}
@@ -94,7 +94,7 @@ export default function NotificationBell() {
                       <span className="min-w-0 flex-1">
                         <span className="flex items-start justify-between gap-2">
                           <span className={cn('text-sm', n.read_at ? 'text-slate-700' : 'font-semibold text-slate-900')}>{n.title}</span>
-                          <span className="shrink-0 text-[11px] text-slate-400">{ago(n.created_at)}</span>
+                          <span className="shrink-0 text-[12px] text-slate-400">{ago(n.created_at)}</span>
                         </span>
                         <span className="mt-0.5 line-clamp-2 block text-xs text-slate-500">{n.body}</span>
                       </span>

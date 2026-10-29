@@ -35,7 +35,7 @@ export default function SubscriptionBanner() {
   const Icon = icon
 
   return (
-    <div className={`flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-center text-[13px] font-medium ${tone}`}>
+    <div className={`flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-center text-[14px] font-medium ${tone}`}>
       <Icon size={15} className="shrink-0" />
       <span>{text}</span>
       <Link to="/settings/billing" className="rounded-lg bg-white/20 px-2.5 py-0.5 font-semibold hover:bg-white/30">

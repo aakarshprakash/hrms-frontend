@@ -82,7 +82,7 @@ function MasterSettings({ master, siteCount }) {
         <div className="flex items-start gap-3">
           <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', master.enabled ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400')}><ShieldCheck size={22} /></span>
           <div>
-            <p className="text-[15px] font-semibold text-slate-900">Master settings</p>
+            <p className="text-[16px] font-semibold text-slate-900">Master settings</p>
             <p className="text-xs text-slate-500">Applies to every branch and employee unless they’re excluded below.</p>
             <p className="mt-1.5 text-xs text-slate-600">
               <span className="font-semibold text-slate-900">{restricted}</span> employee(s) {master.enabled ? 'geo-fenced' : 'will be geo-fenced when this is on'} · <span className="font-semibold text-slate-900">{people.anywhere ?? 0}</span> can punch anywhere · {siteCount} site{siteCount === 1 ? '' : 's'}
@@ -103,7 +103,7 @@ function MasterSettings({ master, siteCount }) {
           </Field>
         </div>
         <div className="space-y-2">
-          <p className="text-[13px] font-medium text-slate-700">Punches from outside a site</p>
+          <p className="text-[14px] font-medium text-slate-700">Punches from outside a site</p>
           {[
             ['block', ShieldCheck, 'Block them', 'The punch is refused, with the distance shown.'],
             ['flag', ShieldAlert, 'Allow, but flag for HR', 'Counted, and listed in Location exceptions.'],
@@ -111,7 +111,7 @@ function MasterSettings({ master, siteCount }) {
             <button key={key} type="button" onClick={() => set({ mode: key })}
               className={cn('flex w-full gap-2.5 rounded-lg border p-3 text-left', form.mode === key ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500' : 'border-slate-200 hover:bg-slate-50')}>
               <Icon size={18} className={form.mode === key ? 'text-blue-600' : 'text-slate-400'} />
-              <span><span className="block text-[13px] font-medium text-slate-900">{title}</span><span className="block text-xs text-slate-500">{text}</span></span>
+              <span><span className="block text-[14px] font-medium text-slate-900">{title}</span><span className="block text-xs text-slate-500">{text}</span></span>
             </button>
           ))}
         </div>
@@ -156,7 +156,7 @@ function BranchFence({ branch, master }) {
     <Card padded={false}>
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
         <div>
-          <p className="flex items-center gap-2 text-[15px] font-semibold text-slate-900"><Building2 size={16} className="text-slate-400" />{branch.name}</p>
+          <p className="flex items-center gap-2 text-[16px] font-semibold text-slate-900"><Building2 size={16} className="text-slate-400" />{branch.name}</p>
           <p className="text-xs text-slate-500">{[branch.address, branch.city].filter(Boolean).join(', ') || 'No address on file'}
             {' · '}{people.branch} at branch premises · {people.anywhere} anywhere · {people.sites} on specific sites</p>
         </div>
@@ -181,7 +181,7 @@ function BranchFence({ branch, master }) {
                   className={cn('flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors', shown?.id === x.id ? 'bg-blue-50/60' : 'hover:bg-slate-50')}>
                   <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', x.is_active ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400')}><MapPin size={15} /></span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-medium text-slate-900">{x.name}{!x.is_active && <span className="ml-1.5 text-xs font-normal text-slate-400">(paused)</span>}</p>
+                    <p className="truncate text-[14px] font-medium text-slate-900">{x.name}{!x.is_active && <span className="ml-1.5 text-xs font-normal text-slate-400">(paused)</span>}</p>
                     <p className="truncate text-xs text-slate-500">{x.radius_m} m radius · {Number(x.latitude).toFixed(5)}, {Number(x.longitude).toFixed(5)}{x.assigned > 0 && ` · ${x.assigned} assigned`}</p>
                   </div>
                   <a href={`https://www.google.com/maps?q=${x.latitude},${x.longitude}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
@@ -195,7 +195,7 @@ function BranchFence({ branch, master }) {
           {shown && (
             <div className="overflow-hidden rounded-lg border border-slate-200">
               <iframe title={`Map of ${shown.name}`} src={mapSrc(Number(shown.latitude), Number(shown.longitude), shown.radius_m)} className="h-52 w-full" loading="lazy" />
-              <p className="bg-slate-50 px-3 py-1.5 text-[11px] text-slate-500">{shown.name}: the pin is the centre; the fence is a {shown.radius_m} m circle around it.</p>
+              <p className="bg-slate-50 px-3 py-1.5 text-[12px] text-slate-500">{shown.name}: the pin is the centre; the fence is a {shown.radius_m} m circle around it.</p>
             </div>
           )}
           <ErrorBanner error={remove.error} message={remove.error ? apiError(remove.error) : undefined} />
@@ -323,7 +323,7 @@ function EmployeeRules({ branches }) {
           .map(([key, Icon, title, text]) => (
             <div key={key} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4">
               <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', MODE_ICON[key])}><Icon size={17} /></span>
-              <div><p className="text-[13px] font-semibold text-slate-900">{title}</p><p className="text-xs text-slate-500">{text}</p></div>
+              <div><p className="text-[14px] font-semibold text-slate-900">{title}</p><p className="text-xs text-slate-500">{text}</p></div>
             </div>
           ))}
       </div>
@@ -380,7 +380,7 @@ function EmployeeRules({ branches }) {
                   <Toggle checked={r.mode !== 'anywhere'} disabled={quick.isPending && quick.variables?.id === r.id}
                     onChange={(on) => quick.mutate({ id: r.id, on })} />
                   <StatusPill tone={MODE_TONE[r.mode]} label={MODE_LABEL[r.mode]} dot={false} />
-                  {r.mode === 'sites' && r.sites.map((x) => <span key={x.id} className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">{x.name}</span>)}
+                  {r.mode === 'sites' && r.sites.map((x) => <span key={x.id} className="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] text-slate-600">{x.name}</span>)}
                 </div>
               ) },
             ]} />

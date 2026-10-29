@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Inbox, Check, X, CalendarDays, Clock, Timer, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
+import { Inbox, Check, X, CalendarDays, Clock, Timer, ChevronDown, ChevronUp, ExternalLink, UsersRound } from 'lucide-react'
 import { approvalApi, leaveApi } from '@/lib/api/leaves'
 import { attendanceApi } from '@/lib/api/attendance'
 import { overtimeApi } from '@/lib/api/overtime'
+import { coverageApi } from '@/lib/api/coverage'
 import { dateLabel, timeLabel } from '@/lib/format'
 import { dayCount, leaveRange, lowerLabel, num } from '@/lib/leave'
 import { cn } from '@/lib/utils'
@@ -45,7 +46,7 @@ export default function ApprovalsPage() {
           <div className="flex rounded-xl bg-slate-100 p-1">
             {[['mine', 'Assigned to me'], ['all', `Everything I can act on`]].map(([key, label]) => (
               <button key={key} onClick={() => setScope(key)}
-                className={cn('rounded-lg px-3 py-1.5 text-[13px] font-medium', scope === key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700')}>
+                className={cn('rounded-lg px-3 py-1.5 text-[14px] font-medium', scope === key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700')}>
                 {label}
               </button>
             ))}
@@ -66,6 +67,28 @@ export default function ApprovalsPage() {
       )}
 
       {openLeave && <LeaveDetailModal leaveId={openLeave} onClose={() => setOpenLeave(null)} />}
+    </div>
+  )
+}
+
+/** Warns the approver when this leave would take a team below its minimum staffing. */
+function CoverageWarning({ leaveId }) {
+  const { data = [] } = useQuery({
+    queryKey: ['leave-coverage', leaveId],
+    queryFn: () => coverageApi.leaveImpact(leaveId).then((r) => r.data.data),
+    staleTime: 60_000,
+  })
+  if (!data.length) return null
+
+  return (
+    <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+      <p className="flex items-center gap-1.5 font-semibold"><UsersRound size={13} /> Team coverage</p>
+      {data.slice(0, 4).map((d) => (
+        <p key={`${d.rule}-${d.date}`} className="mt-0.5">
+          {d.rule} would have <b>{d.expected}</b> of the minimum {d.required} on {dateLabel(d.date)}.
+        </p>
+      ))}
+      {data.length > 4 && <p className="mt-0.5">…and {data.length - 4} more day(s).</p>}
     </div>
   )
 }
@@ -123,6 +146,7 @@ function RequestCard({ item, module, onDetails }) {
             )}
 
             {item.reason && <p className="mt-1.5 line-clamp-2 text-sm text-slate-500">“{item.reason}”</p>}
+            {module === 'leave' && <CoverageWarning leaveId={item.id} />}
             {item.step && (
               <p className="mt-1.5 text-xs text-slate-400">
                 {item.step.of > 1 ? `Step ${item.step.number} of ${item.step.of} · ` : ''}Waiting for {lowerLabel(item.step.waiting_for)} · submitted {dateLabel(item.created_at)}

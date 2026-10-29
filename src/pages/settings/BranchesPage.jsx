@@ -99,7 +99,7 @@ export default function BranchesPage() {
       <Link to="/settings/organisation" className="group mb-6 flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-xs transition-colors hover:border-blue-200">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><Landmark size={17} /></div>
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-semibold text-slate-900">{company?.name ?? 'Organisation profile'}</p>
+          <p className="text-[14px] font-semibold text-slate-900">{company?.name ?? 'Organisation profile'}</p>
           <p className="text-xs text-slate-500">Legal name, registered address and statutory registrations are in the organisation profile.</p>
         </div>
         <ArrowRight size={16} className="text-slate-300 group-hover:text-blue-500" />
@@ -117,7 +117,7 @@ export default function BranchesPage() {
                   <div className="flex items-start gap-3 p-5 pb-4">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white"><Building2 size={18} /></div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-[15px] font-semibold text-slate-900">{b.name}</h3>
+                      <h3 className="truncate text-[16px] font-semibold text-slate-900">{b.name}</h3>
                       <p className="flex items-center gap-1 truncate text-xs text-slate-500">
                         <MapPin size={12} className="shrink-0" />{[b.city, b.country].filter(Boolean).join(', ') || 'No address yet'}
                       </p>
@@ -129,16 +129,16 @@ export default function BranchesPage() {
                   </div>
                   <dl className="mt-auto grid grid-cols-3 divide-x divide-slate-100 border-t border-slate-100 text-center">
                     <div className="px-2 py-3">
-                      <dt className="flex items-center justify-center gap-1 text-[11px] text-slate-500"><Users size={12} />People</dt>
-                      <dd className="mt-0.5 text-[15px] font-semibold tabular-nums text-slate-900">{b.employees_count ?? 0}</dd>
+                      <dt className="flex items-center justify-center gap-1 text-[12px] text-slate-500"><Users size={12} />People</dt>
+                      <dd className="mt-0.5 text-[16px] font-semibold tabular-nums text-slate-900">{b.employees_count ?? 0}</dd>
                     </div>
                     <div className="px-2 py-3">
-                      <dt className="flex items-center justify-center gap-1 text-[11px] text-slate-500"><CalendarClock size={12} />Work week</dt>
-                      <dd className="mt-0.5 text-[15px] font-semibold text-slate-900" title={workDays.join(', ')}>{workDays.length} days</dd>
+                      <dt className="flex items-center justify-center gap-1 text-[12px] text-slate-500"><CalendarClock size={12} />Work week</dt>
+                      <dd className="mt-0.5 text-[16px] font-semibold text-slate-900" title={workDays.join(', ')}>{workDays.length} days</dd>
                     </div>
                     <div className="px-2 py-3">
-                      <dt className="flex items-center justify-center gap-1 text-[11px] text-slate-500"><Clock size={12} />Timezone</dt>
-                      <dd className="mt-0.5 truncate text-[13px] font-semibold text-slate-900">{(b.timezone ?? '—').split('/').pop().replace('_', ' ')}</dd>
+                      <dt className="flex items-center justify-center gap-1 text-[12px] text-slate-500"><Clock size={12} />Timezone</dt>
+                      <dd className="mt-0.5 truncate text-[14px] font-semibold text-slate-900">{(b.timezone ?? '—').split('/').pop().replace('_', ' ')}</dd>
                     </div>
                   </dl>
                 </Card>
@@ -159,7 +159,7 @@ export default function BranchesPage() {
             <Button variant="danger" icon={Trash2} loading={remove.isPending} onClick={() => remove.mutate(deleting.id)}>Delete</Button>
           </>}>
           <ErrorBanner error={remove.error} className="mb-3" />
-          <p className="text-[13px] text-slate-600">
+          <p className="text-[14px] text-slate-600">
             Delete <strong className="text-slate-900">{deleting.name}</strong>? This can't be undone.
             {deleting.employees_count > 0 && ` It still has ${deleting.employees_count} active ${deleting.employees_count === 1 ? 'person' : 'people'} — move them to another branch first.`}
           </p>

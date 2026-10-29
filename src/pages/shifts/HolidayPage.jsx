@@ -132,7 +132,7 @@ export default function HolidayPage() {
         <Card padded={false} className="lg:col-span-2">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
             <div>
-              <p className="text-[15px] font-semibold text-slate-900">{monthName}</p>
+              <p className="text-[16px] font-semibold text-slate-900">{monthName}</p>
               <p className="text-xs text-slate-500">{inMonth.length ? `${inMonth.length} holiday${inMonth.length === 1 ? '' : 's'} this month` : 'No holidays this month'}</p>
             </div>
             <div className="flex gap-1">
@@ -145,7 +145,7 @@ export default function HolidayPage() {
           {isLoading ? <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div> : (
             <div className="p-4">
               <div className="mb-2 grid grid-cols-7 gap-1.5">
-                {DAY_NAMES.map((d) => <div key={d} className="text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">{d}</div>)}
+                {DAY_NAMES.map((d) => <div key={d} className="text-center text-[12px] font-semibold uppercase tracking-wider text-slate-400">{d}</div>)}
               </div>
               <div className="grid grid-cols-7 gap-1.5">
                 {cells.map((c, i) => {
@@ -160,7 +160,7 @@ export default function HolidayPage() {
                         c.holiday ? 'bg-rose-50 ring-rose-200' : weekend ? 'bg-slate-50 ring-slate-100' : 'bg-white ring-slate-100',
                         clickable && 'cursor-pointer hover:bg-rose-100',
                         today && 'ring-2 ring-blue-500')}>
-                      <span className={cn('text-[13px] font-semibold',
+                      <span className={cn('text-[14px] font-semibold',
                         today ? 'text-blue-700' : c.holiday ? 'text-rose-700' : weekend ? 'text-slate-400' : 'text-slate-700')}>{c.day}</span>
                       {c.holiday && (
                         <span className="mt-auto line-clamp-2 text-[10.5px] font-medium leading-tight text-rose-700">{c.holiday.name}</span>
@@ -170,7 +170,7 @@ export default function HolidayPage() {
                   )
                 })}
               </div>
-              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-slate-500">
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] text-slate-500">
                 <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-rose-50 ring-1 ring-inset ring-rose-200" />Holiday{canManageEmployees && ' (click to edit)'}</span>
                 <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-slate-50 ring-1 ring-inset ring-slate-200" />Weekend</span>
                 <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded ring-2 ring-blue-500" />Today</span>
@@ -184,7 +184,7 @@ export default function HolidayPage() {
           <Card padded={false}>
             <CardHeader icon={PartyPopper} title="Coming up" subtitle={year === now.getFullYear() ? 'Next holidays' : `From ${year}`} />
             {upcoming.length === 0 ? (
-              <p className="px-5 py-8 text-center text-[13px] text-slate-400">No more holidays in {year}.</p>
+              <p className="px-5 py-8 text-center text-[14px] text-slate-400">No more holidays in {year}.</p>
             ) : (
               <ul className="divide-y divide-slate-100">
                 {upcoming.slice(0, 5).map((h) => {
@@ -192,11 +192,11 @@ export default function HolidayPage() {
                   return (
                     <li key={h.id} className="flex items-center gap-3 px-5 py-3">
                       <div className="flex w-11 shrink-0 flex-col items-center rounded-lg bg-rose-50 py-1 ring-1 ring-inset ring-rose-100">
-                        <span className="text-[10px] font-semibold uppercase text-rose-500">{d.toLocaleDateString('en-IN', { month: 'short' })}</span>
+                        <span className="text-[11px] font-semibold uppercase text-rose-500">{d.toLocaleDateString('en-IN', { month: 'short' })}</span>
                         <span className="text-base font-semibold leading-5 text-rose-700">{d.getDate()}</span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-medium text-slate-900">{h.name}</p>
+                        <p className="truncate text-[14px] font-medium text-slate-900">{h.name}</p>
                         <p className="text-xs text-slate-500">{d.toLocaleDateString('en-IN', { weekday: 'long' })}{h.recurring && ' · yearly'}</p>
                       </div>
                     </li>
@@ -218,7 +218,7 @@ export default function HolidayPage() {
                   return (
                     <li key={h.id} className="group flex items-center gap-3 px-5 py-2.5">
                       <div className="min-w-0 flex-1">
-                        <p className="flex items-center gap-1.5 truncate text-[13px] font-medium text-slate-800">
+                        <p className="flex items-center gap-1.5 truncate text-[14px] font-medium text-slate-800">
                           {h.name}{h.recurring && <Repeat size={11} className="shrink-0 text-slate-400" />}
                         </p>
                         <p className="text-xs text-slate-500">

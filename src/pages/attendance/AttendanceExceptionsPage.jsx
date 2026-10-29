@@ -17,7 +17,7 @@ function Section({ icon, title, subtitle, items, empty, render }) {
       <CardHeader icon={icon} title={title} subtitle={subtitle}
         actions={<span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-slate-600">{items.length}</span>} />
       {items.length === 0 ? (
-        <div className="flex items-center justify-center gap-2 px-5 py-8 text-[13px] text-slate-500">
+        <div className="flex items-center justify-center gap-2 px-5 py-8 text-[14px] text-slate-500">
           <CheckCircle2 size={16} className="text-emerald-500" />{empty}
         </div>
       ) : (
@@ -28,11 +28,11 @@ function Section({ icon, title, subtitle, items, empty, render }) {
               <li key={item.attendance_id ?? i} className="flex items-center gap-3 px-5 py-2.5">
                 <Avatar name={item.employee.name} size="sm" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-slate-900">{item.employee.name}</p>
+                  <p className="truncate text-[14px] font-medium text-slate-900">{item.employee.name}</p>
                   <p className="text-xs text-slate-500">{item.employee.employee_code}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[13px] font-medium text-slate-800">{detail}</p>
+                  <p className="text-[14px] font-medium text-slate-800">{detail}</p>
                   <p className="text-xs text-slate-500">{meta}</p>
                 </div>
               </li>

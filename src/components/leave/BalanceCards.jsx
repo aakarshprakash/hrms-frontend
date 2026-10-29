@@ -8,7 +8,7 @@ export function LeaveTypeChip({ type, className, showCode = false }) {
     <span className={cn('inline-flex items-center gap-1.5 text-sm font-medium text-slate-800', className)}>
       <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: typeColor(type) }} />
       <span className="truncate">{type.name}</span>
-      {showCode && type.code && <span className="rounded bg-slate-100 px-1 font-mono text-[10px] text-slate-500">{type.code}</span>}
+      {showCode && type.code && <span className="rounded bg-slate-100 px-1 font-mono text-[11px] text-slate-500">{type.code}</span>}
     </span>
   )
 }
@@ -60,7 +60,7 @@ export function BalanceCards({ rows = [], onOpen, loading }) {
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
                   <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
                 </div>
-                <p className="mt-1.5 truncate text-[11px] text-slate-500">
+                <p className="mt-1.5 truncate text-[12px] text-slate-500">
                   {num(row.used)} used{row.pending > 0 && <span className="text-amber-600"> · {num(row.pending)} pending</span>}
                   {row.pending <= 0 && <span className="text-slate-400"> · {ACCRUAL_LABELS[row.leave_type.accrual]?.toLowerCase()}</span>}
                 </p>

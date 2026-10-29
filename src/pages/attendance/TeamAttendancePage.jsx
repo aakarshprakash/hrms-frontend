@@ -102,7 +102,7 @@ export default function TeamAttendancePage() {
           <div className="flex h-9 items-center rounded-lg border border-slate-200 bg-white shadow-xs">
             <button onClick={() => setDate((d) => shiftDate(d, -1))} className="flex h-full items-center rounded-l-lg px-2 text-slate-500 hover:bg-slate-50" aria-label="Previous day"><ChevronLeft size={16} /></button>
             <input type="date" value={date} max={localToday()} onChange={(e) => e.target.value && setDate(e.target.value)}
-              className="h-full border-x border-slate-200 bg-transparent px-2 text-[13px] text-slate-900 outline-none" />
+              className="h-full border-x border-slate-200 bg-transparent px-2 text-[14px] text-slate-900 outline-none" />
             <button onClick={() => setDate((d) => shiftDate(d, 1))} disabled={isToday} className="flex h-full items-center rounded-r-lg px-2 text-slate-500 hover:bg-slate-50 disabled:opacity-30" aria-label="Next day"><ChevronRight size={16} /></button>
           </div>
           {!isToday && <Button variant="ghost" size="sm" onClick={() => setDate(localToday())}>Today</Button>}
@@ -161,8 +161,8 @@ export default function TeamAttendancePage() {
                 return (
                   <div className="flex items-center gap-2">
                     <StatusPill status={b === 'unmarked' ? 'draft' : b} label={BUCKETS[b].label} />
-                    {att?.late_by_minutes > 0 && <span className="text-[11px] font-medium text-amber-600">+{att.late_by_minutes}m</span>}
-                    {att?.source && SOURCES[att.source] && <span className="text-[11px] text-slate-400">{SOURCES[att.source]}</span>}
+                    {att?.late_by_minutes > 0 && <span className="text-[12px] font-medium text-amber-600">+{att.late_by_minutes}m</span>}
+                    {att?.source && SOURCES[att.source] && <span className="text-[12px] text-slate-400">{SOURCES[att.source]}</span>}
                   </div>
                 )
               } },
@@ -179,7 +179,7 @@ export default function TeamAttendancePage() {
                       <div className="absolute right-8 top-9 z-30 w-44 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 text-left shadow-lg">
                         {Object.entries(STATUSES).map(([status, m]) => (
                           <button key={status} onClick={() => mark.mutate({ employee_id: r.employee.id, date, status })}
-                            className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] text-slate-700 hover:bg-slate-50">
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-[14px] text-slate-700 hover:bg-slate-50">
                             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: m.color }} />
                             <span className="flex-1">{m.label}</span>
                             {r.attendance?.status === status && <Check size={14} className="text-blue-600" />}

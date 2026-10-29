@@ -11,9 +11,11 @@ import EmployeeDetailPage from '@/pages/employees/EmployeeDetailPage'
 import EmployeeFormPage from '@/pages/employees/EmployeeFormPage'
 import DepartmentsPage from '@/pages/departments/DepartmentsPage'
 import DesignationsPage from '@/pages/departments/DesignationsPage'
+import WorkLocationsPage from '@/pages/departments/WorkLocationsPage'
 import AttendancePage from '@/pages/attendance/AttendancePage'
 import RegularizationPage from '@/pages/attendance/RegularizationPage'
 import AttendanceReportsHub from '@/pages/attendance/AttendanceReportsHub'
+import CoveragePage from '@/pages/attendance/CoveragePage'
 import GeofencePage from '@/pages/settings/GeofencePage'
 import AttendanceExceptionsPage from '@/pages/attendance/AttendanceExceptionsPage'
 import LeavePage from '@/pages/leaves/LeavePage'
@@ -59,9 +61,11 @@ import AuditLogPage from '@/pages/settings/AuditLogPage'
 import BillingPage from '@/pages/settings/BillingPage'
 import SignupPage from '@/pages/auth/SignupPage'
 import PlatformPlansPage from '@/pages/platform/PlatformPlansPage'
+import PlatformMailPage from '@/pages/platform/PlatformMailPage'
 import PlatformBillingPage from '@/pages/platform/PlatformBillingPage'
 import RequireFeature from '@/routes/RequireFeature'
 import NotificationSettingsPage from '@/pages/settings/NotificationSettingsPage'
+import WorkspaceMailPage from '@/pages/settings/WorkspaceMailPage'
 import AccountNotificationsPage from '@/pages/auth/AccountNotificationsPage'
 
 const queryClient = new QueryClient({
@@ -94,6 +98,7 @@ export default function App() {
               <Route path="/platform" element={<PlatformDashboardPage />} />
               <Route path="/platform/companies/:id" element={<PlatformCompanyPage />} />
               <Route path="/platform/plans" element={<PlatformPlansPage />} />
+              <Route path="/platform/mail" element={<PlatformMailPage />} />
               <Route path="/platform/billing" element={<PlatformBillingPage />} />
 
               <Route path="/account/security" element={<ChangePasswordPage />} />
@@ -109,12 +114,14 @@ export default function App() {
 
               <Route path="/departments" element={<DepartmentsPage />} />
               <Route path="/designations" element={<DesignationsPage />} />
+              <Route path="/work-locations" element={<WorkLocationsPage />} />
 
               {/* Phase 2: Attendance */}
               <Route path="/attendance" element={<AttendancePage />} />
               <Route path="/attendance/manage" element={<TeamAttendancePage />} />
               <Route path="/attendance/regularizations" element={<RegularizationPage />} />
               <Route path="/attendance/reports" element={<AttendanceReportsHub />} />
+              <Route path="/attendance/coverage" element={<CoveragePage />} />
               {/* Old report URLs land on the matching report */}
               <Route path="/attendance/monthly-punches" element={<Navigate to="/attendance/reports?type=daily" replace />} />
               <Route path="/attendance/muster-roll" element={<Navigate to="/attendance/reports?type=muster" replace />} />
@@ -171,6 +178,7 @@ export default function App() {
               <Route path="/settings/organisation" element={<OrganisationSettingsPage />} />
               <Route path="/settings/audit" element={<RequireFeature feature="audit_log"><AuditLogPage /></RequireFeature>} />
               <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
+              <Route path="/settings/mail" element={<WorkspaceMailPage />} />
               <Route path="/settings/billing" element={<BillingPage />} />
 
               <Route path="/" element={<Navigate to="/dashboard" replace />} />

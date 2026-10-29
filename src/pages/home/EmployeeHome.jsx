@@ -82,7 +82,7 @@ export default function EmployeeHome() {
                     <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: typeColor(b.leave_type) }} />{b.leave_type.name}
                   </p>
                   <p className="mt-1 text-2xl font-bold text-slate-900">{num(b.available)}</p>
-                  <p className="text-[11px] text-slate-400">available{b.pending > 0 ? ` · ${num(b.pending)} pending` : ''}</p>
+                  <p className="text-[12px] text-slate-400">available{b.pending > 0 ? ` · ${num(b.pending)} pending` : ''}</p>
                 </div>
               ))}
             </div>
@@ -138,20 +138,20 @@ function WeekStrip({ week }) {
           const off = d.weekly_off || d.holiday || d.leave === 'full'
           return (
             <div key={d.date} className={cn('px-1.5 py-3 text-center', i === 0 && 'bg-blue-50/60', off && 'bg-slate-50/80')}>
-              <p className={cn('text-[11px] font-semibold uppercase', i === 0 ? 'text-blue-600' : 'text-slate-400')}>{i === 0 ? 'Today' : WEEKDAYS[date.getDay()]}</p>
+              <p className={cn('text-[12px] font-semibold uppercase', i === 0 ? 'text-blue-600' : 'text-slate-400')}>{i === 0 ? 'Today' : WEEKDAYS[date.getDay()]}</p>
               <p className="text-lg font-bold text-slate-900">{date.getDate()}</p>
               {d.holiday ? (
-                <p className="mt-1 truncate rounded bg-teal-50 px-1 py-0.5 text-[10px] font-semibold text-teal-700" title={d.holiday}>{d.holiday}</p>
+                <p className="mt-1 truncate rounded bg-teal-50 px-1 py-0.5 text-[11px] font-semibold text-teal-700" title={d.holiday}>{d.holiday}</p>
               ) : d.leave ? (
-                <p className="mt-1 rounded bg-purple-50 px-1 py-0.5 text-[10px] font-semibold text-purple-700">{d.leave === 'half' ? '½ leave' : 'Leave'}</p>
+                <p className="mt-1 rounded bg-purple-50 px-1 py-0.5 text-[11px] font-semibold text-purple-700">{d.leave === 'half' ? '½ leave' : 'Leave'}</p>
               ) : d.weekly_off ? (
-                <p className="mt-1 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-semibold text-slate-500">Off</p>
+                <p className="mt-1 rounded bg-slate-100 px-1 py-0.5 text-[11px] font-semibold text-slate-500">Off</p>
               ) : d.shift ? (
-                <p className="mt-1 truncate rounded px-1 py-0.5 text-[10px] font-semibold text-white" style={{ backgroundColor: d.shift.color || '#2563eb' }} title={d.shift.name}>
+                <p className="mt-1 truncate rounded px-1 py-0.5 text-[11px] font-semibold text-white" style={{ backgroundColor: d.shift.color || '#2563eb' }} title={d.shift.name}>
                   {d.shift.start}–{d.shift.end}
                 </p>
               ) : (
-                <p className="mt-1 text-[10px] text-slate-400">—</p>
+                <p className="mt-1 text-[11px] text-slate-400">—</p>
               )}
             </div>
           )
@@ -175,7 +175,7 @@ function MonthCard({ month }) {
         {items.map(([label, value, cls]) => (
           <div key={label} className="rounded-xl bg-slate-50 py-2.5">
             <p className={cn('text-xl font-bold', cls)}>{value}</p>
-            <p className="text-[11px] text-slate-500">{label}</p>
+            <p className="text-[12px] text-slate-500">{label}</p>
           </div>
         ))}
       </div>
@@ -205,10 +205,10 @@ function QuickActions({ openRequests, requests, onApply }) {
             <>
               <Icon size={16} className="shrink-0 text-blue-600" />
               <span className="flex-1 truncate">{a.label}</span>
-              {a.badge > 0 && <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-bold text-amber-800">{a.badge}</span>}
+              {a.badge > 0 && <span className="rounded-full bg-amber-100 px-1.5 text-[11px] font-bold text-amber-800">{a.badge}</span>}
             </>
           )
-          const cls = 'flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left text-[13px] font-medium text-slate-700 hover:border-blue-300 hover:bg-blue-50/40'
+          const cls = 'flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left text-[14px] font-medium text-slate-700 hover:border-blue-300 hover:bg-blue-50/40'
           return a.to
             ? <Link key={a.label} to={a.to} className={cls}>{body}</Link>
             : <button key={a.label} onClick={a.onClick} className={cls}>{body}</button>

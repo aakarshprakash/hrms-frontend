@@ -65,7 +65,7 @@ export default function AttendancePage() {
           <PunchWidget />
           <Card padded={false}>
             <CardHeader title={monthName} subtitle="This month so far" />
-            <dl className="divide-y divide-slate-100 text-[13px]">
+            <dl className="divide-y divide-slate-100 text-[14px]">
               {[
                 ['Present', count('present', 'late'), 'bg-emerald-500'],
                 ['Late arrivals', count('late'), 'bg-amber-500'],
@@ -90,7 +90,7 @@ export default function AttendancePage() {
 
         <Card padded={false} className="lg:col-span-2">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-            <p className="text-[15px] font-semibold text-slate-900">{monthName}</p>
+            <p className="text-[16px] font-semibold text-slate-900">{monthName}</p>
             <div className="flex gap-1">
               <Button variant="secondary" size="sm" icon={ChevronLeft} onClick={() => shift(-1)} aria-label="Previous month" />
               <Button variant="secondary" size="sm" onClick={() => setCursor({ year: new Date().getFullYear(), month: new Date().getMonth() })}>Today</Button>
@@ -100,7 +100,7 @@ export default function AttendancePage() {
           {isLoading ? <div className="flex justify-center py-16"><Spinner className="h-8 w-8" /></div> : (
             <div className="p-4">
               <div className="mb-2 grid grid-cols-7 gap-1.5">
-                {WEEKDAYS.map((d) => <div key={d} className="text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">{d}</div>)}
+                {WEEKDAYS.map((d) => <div key={d} className="text-center text-[12px] font-semibold uppercase tracking-wider text-slate-400">{d}</div>)}
               </div>
               <div className="grid grid-cols-7 gap-1.5">
                 {cells.map((c, i) => {
@@ -112,18 +112,18 @@ export default function AttendancePage() {
                       className={cn('flex min-h-[72px] flex-col rounded-lg p-2 text-left ring-1 ring-inset',
                         status ? CELL[status] : 'bg-white ring-slate-100',
                         c.date === todayKey && 'ring-2 ring-blue-500')}>
-                      <span className={cn('text-[13px] font-semibold', c.date === todayKey ? 'text-blue-700' : status ? '' : 'text-slate-700')}>{c.day}</span>
+                      <span className={cn('text-[14px] font-semibold', c.date === todayKey ? 'text-blue-700' : status ? '' : 'text-slate-700')}>{c.day}</span>
                       {r && (
                         <>
                           <span className="mt-auto text-[10.5px] font-medium">{LABEL[status] ?? status}</span>
-                          {r.check_in && <span className="text-[10px] tabular-nums opacity-75">{time(r.check_in)}</span>}
+                          {r.check_in && <span className="text-[11px] tabular-nums opacity-75">{time(r.check_in)}</span>}
                         </>
                       )}
                     </div>
                   )
                 })}
               </div>
-              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-slate-500">
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] text-slate-500">
                 {Object.entries(LABEL).map(([k, l]) => (
                   <span key={k} className="flex items-center gap-1.5"><span className={cn('h-2.5 w-2.5 rounded ring-1 ring-inset', CELL[k])} />{l}</span>
                 ))}
@@ -148,7 +148,7 @@ export default function AttendancePage() {
             { key: 'status', label: 'Status', render: (r) => (
               <div className="flex items-center gap-2">
                 <StatusPill status={r.status} />
-                {r.late_by_minutes > 0 && <span className="text-[11px] font-medium text-amber-600">+{r.late_by_minutes}m</span>}
+                {r.late_by_minutes > 0 && <span className="text-[12px] font-medium text-amber-600">+{r.late_by_minutes}m</span>}
               </div>
             ) },
             { key: 'remarks', label: 'Remarks', render: (r) => <span className="text-xs text-slate-500">{r.remarks ?? r.holiday_name ?? ''}</span> },

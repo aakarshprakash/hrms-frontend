@@ -122,7 +122,7 @@ export default function OvertimePage() {
           {user?.employee_id && <Button icon={Plus} onClick={() => setComposing(true)}>Claim overtime</Button>}
         </>} />
 
-      {flash && <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-[13px] font-medium text-emerald-700">{flash}</div>}
+      {flash && <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-[14px] font-medium text-emerald-700">{flash}</div>}
 
       {seesOthers && user?.employee_id && (
         <Tabs className="mb-4" value={tab} onChange={(k) => { setTab(k); setPage(1) }}

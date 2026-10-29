@@ -15,8 +15,8 @@ import { cn } from '@/lib/utils'
 
 export default function PayrollSettingsPage() {
   const activeBranchId = useAuthStore((s) => s.activeBranchId)
-  const [branchId, setBranchId] = useState(activeBranchId ?? '')
   const [params] = useSearchParams()
+  const [branchId, setBranchId] = useState(params.get('branch') ?? activeBranchId ?? '')
   const [tab, setTab] = useState(['components', 'statutory', 'overtime'].includes(params.get('tab')) ? params.get('tab') : 'components')
   const { data: branches = [] } = useQuery({ queryKey: ['branches'], queryFn: () => branchApi.list().then((r) => r.data?.data ?? []) })
   const effectiveBranch = branchId || branches[0]?.id
@@ -78,7 +78,7 @@ function ComponentsTab({ branchId }) {
         columns={[
           { key: 'name', label: 'Component', render: (c) => (
             <div className={cn(!c.is_active && 'opacity-50')}>
-              <p className="font-medium text-slate-800">{c.name} {c.code && <span className="ml-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">{c.code}</span>}</p>
+              <p className="font-medium text-slate-800">{c.name} {c.code && <span className="ml-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500">{c.code}</span>}</p>
               <p className="text-xs text-slate-400">{c.structures_count ?? 0} employee line(s)</p>
             </div>
           ) },
@@ -86,7 +86,7 @@ function ComponentsTab({ branchId }) {
           { key: 'calc', label: 'Calculation', render: (c) => <span className="text-sm text-slate-600">{c.calculation_type === 'percentage' ? `% of ${c.percentage_of === 'gross' ? 'gross' : 'basic'}` : 'Fixed amount'}</span> },
           { key: 'flags', label: 'Behaviour', render: (c) => (
             <div className="flex flex-wrap gap-1">
-              {FLAGS.filter(([k]) => c[k]).map(([k, label]) => <span key={k} className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[11px] font-medium text-blue-700">{label}</span>)}
+              {FLAGS.filter(([k]) => c[k]).map(([k, label]) => <span key={k} className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[12px] font-medium text-blue-700">{label}</span>)}
             </div>
           ) },
           { key: 'status', label: 'Status', render: (c) => <StatusPill status={c.is_active ? 'active' : 'inactive'} /> },
@@ -341,7 +341,7 @@ function SlabEditor({ slabs, onChange }) {
   const update = (i, idx, value) => onChange(slabs.map((s, j) => (j === i ? s.map((v, k) => (k === idx ? (value === '' ? null : Number(value)) : v)) : s)))
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200">
-      <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 bg-slate-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+      <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 bg-slate-50 px-3 py-2 text-[12px] font-semibold uppercase tracking-wide text-slate-500">
         <span>Income from (₹)</span><span>Up to (₹, blank = no limit)</span><span>Tax (₹)</span><span />
       </div>
       {slabs.map((slab, i) => (
@@ -413,7 +413,7 @@ function OvertimeTab({ branchId, branchName }) {
         )}
       </Card>
       <Card>
-        <h3 className="text-[13px] font-semibold text-slate-900">How it's paid</h3>
+        <h3 className="text-[14px] font-semibold text-slate-900">How it's paid</h3>
         <ul className="mt-2 list-disc space-y-1.5 pl-4 text-xs leading-relaxed text-slate-600">
           <li>Employees claim extra hours from <strong>Overtime</strong>; approvers decide in <strong>Approvals</strong>.</li>
           <li>Each payroll run adds an <strong>Overtime</strong> earning: approved hours × multiplier × hourly basic (monthly basic ÷ 208 hours).</li>

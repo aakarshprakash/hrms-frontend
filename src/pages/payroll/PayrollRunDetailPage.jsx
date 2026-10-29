@@ -12,6 +12,7 @@ import { money, days, monthLabel, dateLabel } from '@/lib/format'
 import { Spinner } from '@/components/ui/Spinner'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import PayslipBreakdown from '@/components/payroll/PayslipBreakdown'
+import { lopAmount } from '@/lib/payslip'
 import AdjustmentsPanel from '@/components/payroll/AdjustmentsPanel'
 import { Card, Button, Modal, Field, Input, StatusPill, StatCard, Table, Tabs, EmptyState, ErrorBanner } from '@/components/ui/kit'
 import { cn } from '@/lib/utils'
@@ -30,13 +31,13 @@ function Stepper({ status }) {
       {STEPS.map((s, i) => (
         <li key={s.key} className={cn('rounded-xl border px-3 py-2.5', i < current ? 'border-emerald-200 bg-emerald-50/60' : i === current ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white')}>
           <div className="flex items-center gap-2">
-            <span className={cn('flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold',
+            <span className={cn('flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold',
               i < current ? 'bg-emerald-500 text-white' : i === current ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500')}>
               {i < current ? '✓' : i + 1}
             </span>
             <span className={cn('text-sm font-semibold', i <= current ? 'text-slate-900' : 'text-slate-400')}>{s.label}</span>
           </div>
-          <p className="mt-0.5 hidden text-[11px] text-slate-500 sm:block">{s.hint}</p>
+          <p className="mt-0.5 hidden text-[12px] text-slate-500 sm:block">{s.hint}</p>
         </li>
       ))}
     </ol>
@@ -97,11 +98,15 @@ export default function PayrollRunDetailPage() {
       name: r.employee?.name ?? `${r.employee?.first_name ?? ''} ${r.employee?.last_name ?? ''}`.trim(),
       code: r.employee?.employee_code,
       warnings: r.warnings ?? r.breakdown_json?.warnings ?? [],
+      lop: lopAmount(r.breakdown_json),
     }))
   }, [hasPayslips, payslips, preview])
 
   const filtered = search ? rows.filter((r) => `${r.name} ${r.code}`.toLowerCase().includes(search.toLowerCase())) : rows
   const totals = hasPayslips ? run?.totals : preview?.totals
+  // Gross at full rate and LOP among the deductions, matching the payslip.
+  const lopTotal = totals?.lop_amount ?? rows.reduce((s, r) => s + r.lop, 0)
+  const missingStatutory = run?.statutory_rules && !['PF', 'ESI', 'PT'].some((t) => run.statutory_rules.includes(t))
 
   if (isLoading || !run) return <div className="flex justify-center py-24"><Spinner className="h-8 w-8" /></div>
 
@@ -167,11 +172,23 @@ export default function PayrollRunDetailPage() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard label="Employees" value={totals?.employees ?? totals?.employee_count ?? '—'} icon={Users} />
-        <StatCard label="Gross pay" value={money(totals?.gross ?? totals?.total_gross)} icon={IndianRupee} tone="green" />
-        <StatCard label="Deductions" value={money(totals?.deductions ?? totals?.total_deductions)} icon={Wallet} tone="red" />
+        <StatCard label="Gross pay" value={money(Number(totals?.gross ?? totals?.total_gross ?? 0) + lopTotal)} icon={IndianRupee} tone="green" />
+        <StatCard label="Deductions" value={money(Number(totals?.deductions ?? totals?.total_deductions ?? 0) + lopTotal)} icon={Wallet} tone="red"
+          hint={lopTotal > 0 ? `incl. loss of pay ${money(lopTotal)}` : undefined} />
         <StatCard label="Net pay" value={money(totals?.net ?? totals?.total_net)} icon={Banknote} tone="blue" />
         <StatCard label="Cost to company" value={money(totals?.employer_cost)} icon={Building2} tone="purple" />
       </div>
+
+      {missingStatutory && (
+        <div className="flex flex-wrap items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-600" />
+          <p className="flex-1">
+            <b>No PF, ESI or professional tax is set up for {run.branch?.name}</b>, so this run deducts none of them.
+            Switch on the ones that apply, then re-process.
+          </p>
+          <Link to={`/payroll/settings?tab=statutory&branch=${run.branch_id}`} className="font-semibold text-amber-900 underline">Set up statutory rules</Link>
+        </div>
+      )}
 
       {totals && (
         <Card className="flex flex-wrap items-center gap-x-8 gap-y-2 py-3 text-sm">
@@ -180,7 +197,7 @@ export default function PayrollRunDetailPage() {
           <span>ESI <b>{money(Number(totals.esi_employee ?? 0) + Number(totals.esi_employer ?? 0))}</b></span>
           <span>Prof. tax <b>{money(totals.professional_tax)}</b></span>
           <span>TDS <b>{money(totals.tds)}</b></span>
-          <span>LOP days <b>{days(totals.lop_days)}</b></span>
+          <span>LOP days <b>{days(totals.lop_days)}</b>{lopTotal > 0 && <span className="text-xs text-slate-400"> ({money(lopTotal)})</span>}</span>
           {Number(totals.warnings) > 0 && <span className="inline-flex items-center gap-1 text-amber-700"><AlertTriangle size={14} /> {totals.warnings} warning(s)</span>}
         </Card>
       )}
@@ -215,8 +232,11 @@ export default function PayrollRunDetailPage() {
               ) },
               { key: 'payable_days', label: 'Payable days', align: 'right', render: (r) => days(r.payable_days) },
               { key: 'lop_days', label: 'LOP', align: 'right', render: (r) => <span className={Number(r.lop_days) > 0 ? 'font-medium text-rose-600' : 'text-slate-400'}>{days(r.lop_days)}</span> },
-              { key: 'gross_pay', label: 'Gross', align: 'right', render: (r) => money(r.gross_pay) },
-              { key: 'total_deductions', label: 'Deductions', align: 'right', render: (r) => <span className="text-rose-700">{money(r.total_deductions)}</span> },
+              { key: 'gross_pay', label: 'Gross', align: 'right', render: (r) => money(Number(r.gross_pay) + r.lop) },
+              { key: 'total_deductions', label: 'Deductions', align: 'right', render: (r) => (
+                <div><span className="text-rose-700">{money(Number(r.total_deductions) + r.lop)}</span>
+                  {r.lop > 0 && <p className="text-xs text-slate-400">LOP {money(r.lop)}</p>}</div>
+              ) },
               { key: 'net_pay', label: 'Net pay', align: 'right', render: (r) => <span className="font-semibold text-slate-900">{money(r.net_pay)}</span> },
             ]} />
         </Card>

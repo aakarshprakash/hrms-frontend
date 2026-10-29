@@ -112,7 +112,7 @@ export default function AttendanceReportsHub() {
         <Card padded={false} className="h-fit">
           {['Summaries', 'Registers', 'Exceptions', 'Punches'].map((group) => (
             <div key={group} className="border-b border-slate-100 px-2 py-2 last:border-0">
-              <p className="px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{group}</p>
+              <p className="px-2 pb-1 pt-1 text-[12px] font-semibold uppercase tracking-wider text-slate-400">{group}</p>
               {REPORTS.filter((r) => r.group === group).map((r) => {
                 const Icon = r.icon
                 const active = r.key === type
@@ -121,8 +121,8 @@ export default function AttendanceReportsHub() {
                     className={cn('flex w-full items-start gap-2.5 rounded-lg px-2 py-2 text-left transition-colors', active ? 'bg-blue-50' : 'hover:bg-slate-50')}>
                     <Icon size={16} className={cn('mt-0.5 shrink-0', active ? 'text-blue-600' : 'text-slate-400')} />
                     <span className="min-w-0">
-                      <span className={cn('block text-[13px] font-medium', active ? 'text-blue-700' : 'text-slate-800')}>{TITLES[r.key]}</span>
-                      <span className="block text-[11px] leading-snug text-slate-500">{r.hint}</span>
+                      <span className={cn('block text-[14px] font-medium', active ? 'text-blue-700' : 'text-slate-800')}>{TITLES[r.key]}</span>
+                      <span className="block text-[12px] leading-snug text-slate-500">{r.hint}</span>
                     </span>
                   </button>
                 )
@@ -183,7 +183,7 @@ export default function AttendanceReportsHub() {
               <Totals report={report} />
               <Card padded={false} className={cn('transition-opacity', isFetching && 'opacity-60')}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-100 px-5 py-3">
-                  <p className="text-[15px] font-semibold text-slate-900">{report.title}</p>
+                  <p className="text-[16px] font-semibold text-slate-900">{report.title}</p>
                   <p className="text-xs text-slate-500">{dateLabel(report.period.from)} – {dateLabel(report.period.to)} · {report.period.days} day{report.period.days === 1 ? '' : 's'}
                     {report.meta ? ` · ${number(report.meta.total)} rows` : ` · ${report.rows.length} employees`}</p>
                 </div>
@@ -251,7 +251,7 @@ function MusterGrid({ report }) {
   return (
     <>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[11px]">
+        <table className="w-full border-collapse text-[12px]">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-slate-500">
               <th className="sticky left-0 z-10 min-w-[170px] bg-slate-50 px-3 py-2 text-left font-semibold">Employee</th>
@@ -272,7 +272,7 @@ function MusterGrid({ report }) {
               <tr key={row.employee_id} className="hover:bg-slate-50/60">
                 <td className="sticky left-0 z-10 bg-white px-3 py-1.5">
                   <p className="truncate font-medium text-slate-900">{row.name}</p>
-                  <p className="text-[10px] text-slate-400">{row.employee_code}</p>
+                  <p className="text-[11px] text-slate-400">{row.employee_code}</p>
                 </td>
                 {report.dates.map((d) => {
                   const c = row.cells[d]
@@ -284,7 +284,7 @@ function MusterGrid({ report }) {
           </tbody>
         </table>
       </div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 px-5 py-3 text-[11px] text-slate-500">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 px-5 py-3 text-[12px] text-slate-500">
         {Object.entries(report.legend).map(([code, label]) => (
           <span key={code}><span className={cn('mr-1 rounded px-1 font-semibold', CODE_STYLE[code])}>{code}</span>{label}</span>
         ))}

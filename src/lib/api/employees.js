@@ -6,6 +6,8 @@ export const employeeApi = {
   create: (data) => api.post('/employees', data),
   update: (id, data) => api.put(`/employees/${id}`, data),
   terminate: (id) => api.delete(`/employees/${id}`),
+  codeSettings: () => api.get('/employees/code-settings'),
+  updateCodeSettings: (data) => api.put('/employees/code-settings', data),
 
   uploadAvatar: (employeeId, formData) =>
     api.post(`/employees/${employeeId}/avatar`, formData, {

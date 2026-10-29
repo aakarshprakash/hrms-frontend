@@ -55,9 +55,9 @@ export default function EmployeePicker({ value, onChange, placeholder = 'All emp
             return (
               <button key={e.id} type="button"
                 onClick={() => { onChange({ id: e.id, name, code: e.employee_code }); setTerm(''); setOpen(false) }}
-                className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-[13px] hover:bg-slate-50">
+                className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-[14px] hover:bg-slate-50">
                 <span className="truncate text-slate-800">{name}</span>
-                <span className="shrink-0 text-[11px] text-slate-400">{e.employee_code}</span>
+                <span className="shrink-0 text-[12px] text-slate-400">{e.employee_code}</span>
               </button>
             )
           })}

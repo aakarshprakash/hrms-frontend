@@ -136,14 +136,14 @@ export default function EmployeeListPage() {
                     <Avatar name={name(e)} src={e.avatar_url} size="lg" />
                     <StatusPill status={e.status} />
                   </div>
-                  <p className="mt-3 truncate text-[15px] font-semibold text-slate-900 group-hover:text-blue-700">{name(e)}</p>
-                  <p className="truncate text-[13px] text-slate-500">{e.designation?.title ?? 'No designation'}</p>
+                  <p className="mt-3 truncate text-[16px] font-semibold text-slate-900 group-hover:text-blue-700">{name(e)}</p>
+                  <p className="truncate text-[14px] text-slate-500">{e.designation?.title ?? 'No designation'}</p>
                   <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3 text-xs text-slate-500">
                     <p className="flex items-center gap-2 truncate"><Building2 size={13} className="shrink-0 text-slate-400" />{e.department?.name ?? '—'} · {e.branch?.name ?? '—'}</p>
                     <p className="flex items-center gap-2 truncate"><Mail size={13} className="shrink-0 text-slate-400" />{e.email}</p>
                     <p className="flex items-center justify-between gap-2">
                       <span className="flex items-center gap-2"><Phone size={13} className="shrink-0 text-slate-400" />{e.phone ?? '—'}</span>
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">{e.employee_code}</span>
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500">{e.employee_code}</span>
                     </p>
                   </div>
                 </button>

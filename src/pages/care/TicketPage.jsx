@@ -53,7 +53,7 @@ export default function TicketPage() {
                 <p className="text-xs text-slate-500">{when(t.created_at)} · {t.category_label}{t.type === 'grievance' && ' · grievance'}</p>
               </div>
             </div>
-            <p className="mt-3 whitespace-pre-line text-[14px] leading-relaxed text-slate-700">{t.description}</p>
+            <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-slate-700">{t.description}</p>
           </Card>
 
           {/* Conversation */}
@@ -61,9 +61,9 @@ export default function TicketPage() {
             <p key={m.id} className="flex items-center justify-center gap-2 text-xs text-slate-400"><span className="h-px w-8 bg-slate-200" />{m.author}: {m.body} · {ago(m.created_at)}<span className="h-px w-8 bg-slate-200" /></p>
           ) : (
             <div key={m.id} className={cn('flex', m.mine ? 'justify-end' : 'justify-start')}>
-              <div className={cn('max-w-[85%] rounded-2xl px-4 py-3 text-[14px]',
+              <div className={cn('max-w-[85%] rounded-2xl px-4 py-3 text-[15px]',
                 m.internal ? 'border border-dashed border-amber-300 bg-amber-50 text-amber-950' : m.mine ? 'bg-blue-600 text-white' : 'border border-slate-200 bg-white text-slate-800')}>
-                <p className={cn('mb-1 flex items-center gap-1.5 text-[11px] font-semibold', m.mine && !m.internal ? 'text-blue-100' : 'text-slate-500')}>
+                <p className={cn('mb-1 flex items-center gap-1.5 text-[12px] font-semibold', m.mine && !m.internal ? 'text-blue-100' : 'text-slate-500')}>
                   {m.internal && <Lock size={11} />}{m.author}{m.from_hr && !m.mine && ' · HR'}{m.internal && ' · internal note'}<span className="font-normal">· {ago(m.created_at)}</span>
                 </p>
                 <p className="whitespace-pre-line leading-relaxed">{m.body}</p>
@@ -108,7 +108,7 @@ export default function TicketPage() {
 
         {/* Details / controls */}
         <div className="space-y-4">
-          <Card className="space-y-3 text-[13px]">
+          <Card className="space-y-3 text-[14px]">
             <Row label="Priority">{handler && !closed
               ? <Select value={t.priority} onChange={(e) => update.mutate({ priority: e.target.value })}>{Object.entries(PRIORITY).map(([k, [, l]]) => <option key={k} value={k}>{l}</option>)}</Select>
               : <StatusPill tone={PRIORITY[t.priority][0]} label={PRIORITY[t.priority][1]} dot={false} />}</Row>
