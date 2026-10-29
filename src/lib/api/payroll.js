@@ -45,6 +45,31 @@ export const payrollApi = {
   fetchPayslipPdf: (id) => api.get(`/payslips/${id}/pdf`, { responseType: 'blob' }),
 }
 
+export const loanApi = {
+  list: (params) => api.get('/loans', { params }),
+  get: (id) => api.get(`/loans/${id}`),
+  quote: (data) => api.post('/loans/quote', data),
+  create: (data) => api.post('/loans', data),
+  update: (id, data) => api.put(`/loans/${id}`, data),
+  repay: (id, data) => api.post(`/loans/${id}/repay`, data),
+}
+
+export const payrollExtrasApi = {
+  bonus: (params) => api.get('/payroll/bonus', { params }),
+  applyBonus: (data) => api.post('/payroll/bonus/apply', data),
+  arrears: (params) => api.get('/payroll/arrears', { params }),
+  applyArrears: (data) => api.post('/payroll/arrears/apply', data),
+}
+
+export const taxApi = {
+  mine: (params) => api.get('/me/tax-declaration', { params }),
+  preview: (data) => api.post('/me/tax-declaration/preview', data),
+  save: (data) => api.put('/me/tax-declaration', data),
+  list: (params) => api.get('/tax-declarations', { params }),
+  review: (id, data) => api.post(`/tax-declarations/${id}/review`, data),
+  reopen: (id) => api.post(`/tax-declarations/${id}/reopen`),
+}
+
 /** Browser download of a blob response. */
 export function saveBlob(data, filename, type) {
   const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type }))

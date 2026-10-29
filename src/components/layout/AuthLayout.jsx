@@ -1,8 +1,9 @@
-import { CheckCircle2, Fingerprint, IndianRupee, CalendarCheck2 } from 'lucide-react'
+import { CheckCircle2, Fingerprint, IndianRupee, CalendarCheck2, MapPin } from 'lucide-react'
 import logoIcon from '@/assets/brand/icon.png'
 import logoFull from '@/assets/brand/logo-full.png'
 
 const POINTS = [
+  { icon: MapPin, text: 'Geo-fenced mobile punches — only from your premises' },
   { icon: Fingerprint, text: 'Biometric, web and mobile punches across every branch' },
   { icon: CalendarCheck2, text: 'Leave, shifts and approvals that follow your policies' },
   { icon: IndianRupee, text: 'Payroll with PF, ESI, PT and TDS worked out for you' },

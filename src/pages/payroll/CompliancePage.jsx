@@ -117,6 +117,8 @@ export default function CompliancePage() {
           )}
         </>
       )}
+
+      <Form16Section />
     </div>
   )
 }
@@ -153,15 +155,15 @@ function DueCard({ icon: Icon, tone, title, amount, due, lines, warning }) {
 
 function DownloadTile({ report, params }) {
   const Icon = report.icon
+  const stamp = `${params.year}${String(params.month).padStart(2, '0')}`
   const download = useMutation({
-    mutationFn: () => complianceApi.download(report.key, params).then((res) => {
-      const stamp = `${params.year}${String(params.month).padStart(2, '0')}`
-      saveBlob(res.data, report.key === 'pf-ecr' ? `ECR_${stamp}.txt` : `${report.key}-${stamp}.csv`, res.data.type)
+    mutationFn: (format) => complianceApi.download(report.key, format === 'pdf' ? { ...params, format } : params).then((res) => {
+      const name = format === 'pdf' ? `${report.key}-${stamp}.pdf` : report.key === 'pf-ecr' ? `ECR_${stamp}.txt` : `${report.key}-${stamp}.csv`
+      saveBlob(res.data, name, res.data.type)
     }),
   })
   return (
-    <button onClick={() => download.mutate()} disabled={download.isPending}
-      className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-left transition-colors hover:border-blue-300 hover:bg-blue-50/40 disabled:opacity-60">
+    <div className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
         {download.isPending ? <Spinner className="h-4 w-4" /> : <Icon size={17} />}
       </span>
@@ -169,8 +171,67 @@ function DownloadTile({ report, params }) {
         <span className="block text-sm font-semibold text-slate-800">{report.label}</span>
         <span className="block truncate text-xs text-slate-500">{download.isError ? 'Could not download — try again' : report.hint}</span>
       </span>
-      <Download size={15} className="text-slate-400" />
-    </button>
+      <button type="button" title={`Download ${report.ext ?? 'csv'}`} disabled={download.isPending} onClick={() => download.mutate('file')}
+        className="rounded-md px-1.5 py-1 text-[11px] font-semibold uppercase text-slate-500 hover:bg-slate-100 hover:text-slate-800"><Download size={13} className="mr-0.5 inline" />{report.ext ?? 'csv'}</button>
+      {report.key !== 'pf-ecr' && (
+        <button type="button" title="Printable PDF statement" disabled={download.isPending} onClick={() => download.mutate('pdf')}
+          className="rounded-md px-1.5 py-1 text-[11px] font-semibold uppercase text-blue-600 hover:bg-blue-50">PDF</button>
+      )}
+    </div>
+  )
+}
+
+function fyList() {
+  const t = new Date()
+  const start = t.getMonth() >= 3 ? t.getFullYear() : t.getFullYear() - 1
+  return [start, start - 1, start - 2].map((y) => `${y}-${String((y + 1) % 100).padStart(2, '0')}`)
+}
+
+/** Annual salary & TDS statement (Form 16 Part B) per employee. */
+function Form16Section() {
+  const fys = fyList()
+  const [fy, setFy] = useState(fys[0])
+  const branchId = useAuthStore((s) => s.activeBranchId)
+  const { data, isLoading } = useQuery({
+    queryKey: ['form16', fy, branchId],
+    queryFn: () => complianceApi.form16List({ financial_year: fy, branch_id: branchId || undefined }).then((r) => r.data),
+  })
+  const pdf = useMutation({
+    mutationFn: (row) => complianceApi.form16Pdf({ financial_year: fy, employee_id: row.employee_id })
+      .then((res) => saveBlob(res.data, `Form16-PartB-${row.employee_code}-${fy}.pdf`, 'application/pdf')),
+  })
+  const missingIds = data && (!data.employer.tan || !data.employer.pan)
+
+  return (
+    <Card padded={false}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
+        <div>
+          <p className="font-semibold text-slate-900">Form 16 — Part B</p>
+          <p className="text-xs text-slate-500">Annual salary and TDS statement per employee, from finalized payroll. Part A comes from TRACES.</p>
+        </div>
+        <Select className="w-auto" value={fy} onChange={(e) => setFy(e.target.value)}>{fys.map((f) => <option key={f} value={f}>FY {f}</option>)}</Select>
+      </div>
+      {missingIds && (
+        <p className="flex items-center gap-2 bg-amber-50 px-5 py-2 text-xs text-amber-800"><AlertTriangle size={13} />
+          Add the organisation’s PAN and TAN under <Link to="/settings/organisation" className="font-semibold underline">Organisation settings</Link> — they’re printed on Form 16.</p>
+      )}
+      {isLoading ? <div className="flex justify-center py-10"><Spinner className="h-6 w-6" /></div> : (
+        <Table rows={data?.data ?? []} rowKey="employee_id" empty={<EmptyState icon={FileText} title="No finalized payroll in this year" />}
+          columns={[
+            { key: 'name', label: 'Employee', render: (r) => <div><p className="font-medium text-slate-900">{r.name}</p><p className="text-xs text-slate-400">{r.employee_code}</p></div> },
+            { key: 'pan', label: 'PAN', render: (r) => r.pan ?? <span className="text-xs text-rose-600">Missing</span> },
+            { key: 'months', label: 'Months', align: 'right' },
+            { key: 'taxable', label: 'Salary paid', align: 'right', render: (r) => money(r.taxable) },
+            { key: 'tds', label: 'TDS', align: 'right', render: (r) => money(r.tds) },
+            { key: 'pdf', label: '', align: 'right', render: (r) => (
+              <button type="button" onClick={() => pdf.mutate(r)} disabled={pdf.isPending}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50">
+                {pdf.isPending && pdf.variables?.employee_id === r.employee_id ? <Spinner className="h-3 w-3" /> : <Download size={13} />} PDF
+              </button>
+            ) },
+          ]} />
+      )}
+    </Card>
   )
 }
 

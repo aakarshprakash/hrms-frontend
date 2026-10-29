@@ -71,6 +71,7 @@ const schema = z.object({
   declared_deductions: optional(z.coerce.number().min(0)),
   weekly_off_mode: z.enum(['branch', 'custom']).optional(),
   weekly_off_days: z.any().optional(),
+  geofence_mode: z.enum(['branch', 'anywhere', 'sites']).optional(),
 })
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -219,6 +220,7 @@ function EditEmployeeForm({ id }) {
         declared_deductions: existing.declared_deductions ?? 0,
         weekly_off_mode: Array.isArray(existing.weekly_off_days) ? 'custom' : 'branch',
         weekly_off_days: (existing.weekly_off_days ?? []).map(String),
+        geofence_mode: existing.geofence_mode ?? 'branch',
       })
     }
   }, [existing, currentShift, reset])
@@ -444,6 +446,13 @@ function EditEmployeeForm({ id }) {
                 ))}
               </div>
             )}
+          </Field>
+          <Field label="Geo-fencing" name="geofence_mode">
+            {select('geofence_mode', [
+              ['branch', 'On — punch only at branch sites'],
+              ['anywhere', 'Off — can punch anywhere (sales, travelling)'],
+              ...(watch('geofence_mode') === 'sites' ? [['sites', 'On — specific sites (set in Geo-fencing)']] : []),
+            ])}
           </Field>
           <Field label="Notes" name="notes" className="sm:col-span-2 lg:col-span-3">
             <textarea rows={2} {...register('notes')} className={fieldCls('notes')}
