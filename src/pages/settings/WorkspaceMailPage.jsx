@@ -48,7 +48,7 @@ function MailForm({ config }) {
 
   return (
     <div className="space-y-6">
-      <PageHeader icon={Mail} title="Mail server" subtitle="Send your organisation’s emails from your own domain through your mail server (SMTP)."
+      <PageHeader icon={Mail} title="Mail server" breadcrumbs={[{ label: 'Settings', to: '/settings' }, { label: 'Mail server' }]} subtitle="Send your organisation’s emails from your own domain through your mail server (SMTP)."
         actions={<Button icon={Save} loading={save.isPending} onClick={() => save.mutate()}>Save</Button>} />
 
       {!s.smtp_enabled && (

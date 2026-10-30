@@ -1,12 +1,41 @@
 import { useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Building2, Users, MapPin, LogIn, PauseCircle, PlayCircle, Ban, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Building2, Users, MapPin, LogIn, PauseCircle, PlayCircle, Ban, ShieldCheck, Smartphone } from 'lucide-react'
 import { platformApi } from '@/lib/api/platform'
 import SubscriptionPanel from './SubscriptionPanel'
 import { enterSupportMode } from '@/lib/session'
 import { Spinner } from '@/components/ui/Spinner'
-import { PageHeader, Card, CardHeader, Button, Modal, Field, Textarea, StatusPill, StatCard, ErrorBanner, Table } from '@/components/ui/kit'
+import { PageHeader, Card, CardHeader, Button, Modal, Field, Textarea, StatusPill, StatCard, ErrorBanner, Table, Tabs } from '@/components/ui/kit'
+
+const MOBILE_OPTIONS = [
+  { key: 'plan', label: 'Follow the plan' },
+  { key: 'on', label: 'Always on' },
+  { key: 'off', label: 'Always off' },
+]
+
+/** This organisation's access to the mobile app, over and above its plan. */
+function MobileAppAccess({ companyId, state }) {
+  const qc = useQueryClient()
+  const save = useMutation({
+    mutationFn: (value) => platformApi.setCompanyMobileApp(companyId, value),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['platform-company', companyId] }),
+  })
+  if (!state) return null
+
+  return (
+    <Card padded={false} className="mt-6">
+      <CardHeader icon={Smartphone} title="Mobile app"
+        subtitle={state.allowed ? 'Employees can sign in on the PeopleNex app.' : 'The app is closed for this organisation — people are told to use the web.'}
+        actions={<StatusPill status={state.allowed ? 'active' : 'inactive'} label={state.allowed ? 'Available' : 'Not available'} />} />
+      <div className="flex flex-wrap items-center gap-3 px-5 py-4">
+        <Tabs variant="pills" tabs={MOBILE_OPTIONS} value={save.isPending ? save.variables : state.override} onChange={(v) => v !== state.override && save.mutate(v)} />
+        <p className="text-xs text-slate-500">“Follow the plan” uses the plan’s Mobile app module and the platform-wide switch.</p>
+      </div>
+      {save.error && <div className="px-5 pb-4"><ErrorBanner error={save.error} /></div>}
+    </Card>
+  )
+}
 
 export default function PlatformCompanyPage() {
   const { id } = useParams()
@@ -96,6 +125,8 @@ export default function PlatformCompanyPage() {
       </div>
 
       <SubscriptionPanel companyId={id} />
+
+      <MobileAppAccess companyId={id} state={company.mobile_app} />
 
       {statusModal && (
         <Modal size="sm" title={`${statusModal.label} ${company.name}?`} onClose={() => setStatusModal(null)}

@@ -4,7 +4,7 @@ import { Mail, Save, Send, CheckCircle2, Info } from 'lucide-react'
 import api from '@/lib/api/axios'
 import { useAuthStore } from '@/store/authStore'
 import { Spinner } from '@/components/ui/Spinner'
-import { PageHeader, Card, CardHeader, Button, Field, Input, Select, Toggle, ErrorBanner } from '@/components/ui/kit'
+import { Card, CardHeader, Button, Field, Input, Select, Toggle, ErrorBanner } from '@/components/ui/kit'
 
 const mailApi = {
   get: () => api.get('/platform/mail-settings'),
@@ -16,7 +16,7 @@ const mailApi = {
  * The platform's outgoing mail server (SMTP): sign-up codes, invoices and
  * every organisation's emails unless it sets up its own.
  */
-export default function PlatformMailPage() {
+export default function PlatformMailSettings() {
   const { data, isLoading } = useQuery({ queryKey: ['platform-mail'], queryFn: () => mailApi.get().then((r) => r.data) })
   if (isLoading || !data) return <div className="flex justify-center py-24"><Spinner className="h-8 w-8" /></div>
 
@@ -41,10 +41,7 @@ function MailForm({ config }) {
   const test = useMutation({ mutationFn: () => mailApi.test(testTo) })
 
   return (
-    <div className="space-y-6">
-      <PageHeader icon={Mail} title="Mail server" subtitle="SMTP for sign-up codes, invoices and notifications. Organisations can also add their own."
-        actions={<Button icon={Save} loading={save.isPending} onClick={() => save.mutate()}>Save</Button>} />
-
+    <div className="space-y-4">
       {config.env_mailer && !s.enabled && (
         <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <Info size={16} className="mt-0.5 shrink-0" />
@@ -58,7 +55,8 @@ function MailForm({ config }) {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card padded={false} className="lg:col-span-2">
-          <CardHeader icon={Mail} title="SMTP settings" subtitle="From your email provider (Google Workspace, Microsoft 365, Zoho, Amazon SES, SendGrid…)." />
+          <CardHeader icon={Mail} title="SMTP settings" subtitle="Sign-up codes, invoices and every organisation’s emails unless it adds its own server."
+            actions={<Button icon={Save} size="sm" loading={save.isPending} onClick={() => save.mutate()}>Save</Button>} />
           <div className="space-y-4 p-5">
             <Toggle checked={form.enabled} onChange={(enabled) => set({ enabled })} label="Send email through this server"
               description="Off: the server’s .env mail settings are used." />

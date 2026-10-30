@@ -61,7 +61,7 @@ import AuditLogPage from '@/pages/settings/AuditLogPage'
 import BillingPage from '@/pages/settings/BillingPage'
 import SignupPage from '@/pages/auth/SignupPage'
 import PlatformPlansPage from '@/pages/platform/PlatformPlansPage'
-import PlatformMailPage from '@/pages/platform/PlatformMailPage'
+import PlatformSettingsPage from '@/pages/platform/PlatformSettingsPage'
 import PlatformBillingPage from '@/pages/platform/PlatformBillingPage'
 import RequireFeature from '@/routes/RequireFeature'
 import NotificationSettingsPage from '@/pages/settings/NotificationSettingsPage'
@@ -98,7 +98,8 @@ export default function App() {
               <Route path="/platform" element={<PlatformDashboardPage />} />
               <Route path="/platform/companies/:id" element={<PlatformCompanyPage />} />
               <Route path="/platform/plans" element={<PlatformPlansPage />} />
-              <Route path="/platform/mail" element={<PlatformMailPage />} />
+              <Route path="/platform/settings" element={<PlatformSettingsPage />} />
+              <Route path="/platform/mail" element={<Navigate to="/platform/settings?tab=mail" replace />} />
               <Route path="/platform/billing" element={<PlatformBillingPage />} />
 
               <Route path="/account/security" element={<ChangePasswordPage />} />

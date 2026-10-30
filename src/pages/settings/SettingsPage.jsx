@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useQueries } from '@tanstack/react-query'
 import {
   Building2, Network, Briefcase, CalendarDays, CalendarRange, Clock, Timer, Landmark, Sparkles, Fingerprint,
-  Settings, ShieldCheck, KeyRound, BellRing, History, CreditCard, Wallet, ChevronRight, CheckCircle2, Circle, Building,
+  Settings, ShieldCheck, KeyRound, BellRing, History, CreditCard, Wallet, ChevronRight, CheckCircle2, Circle, Building, Mail,
 } from 'lucide-react'
 import { branchApi, departmentApi, designationApi } from '@/lib/api/departments'
 import { shiftApi, holidayApi } from '@/lib/api/shifts'
@@ -88,6 +88,7 @@ function sections(c, year) {
         { to: '/settings/users', icon: ShieldCheck, title: 'Users & access', text: 'Who can sign in, their roles and which branches they see.', perms: ['users.manage'] },
         { to: '/settings/roles', icon: KeyRound, title: 'Roles & permissions', text: 'Built-in and custom roles, and the data each role can reach.', perms: ['roles.manage'] },
         { to: '/settings/notifications', icon: BellRing, title: 'Notifications', text: 'Email, SMS and WhatsApp alerts, and the templates they use.', perms: ['notifications.manage'] },
+        { to: '/settings/mail', icon: Mail, title: 'Mail server', text: 'Send your organisation’s emails from your own domain through your SMTP server.', perms: ['notifications.manage'] },
         { to: '/settings/audit', icon: History, title: 'Audit trail', text: 'Every change to people, pay and settings — who, what and when.', perms: ['audit.view'], feature: 'audit_log' },
         { to: '/settings/billing', icon: CreditCard, title: 'Plan & billing', text: 'Your subscription, seats, invoices and payment method.', perms: ['billing.manage'] },
       ],
