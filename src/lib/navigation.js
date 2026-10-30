@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Clock, CalendarDays, IndianRupee, Award, Building, Settings, Sparkles, ShieldCheck,
-  History, Globe2, Inbox, BellRing, CreditCard, Layers, KeyRound, Wallet, CalendarClock, Megaphone, LifeBuoy, Mail,
+  Globe2, Inbox, CreditCard, Layers, Wallet, CalendarClock, Megaphone, LifeBuoy, Settings2,
 } from 'lucide-react'
 
 /*
@@ -104,13 +104,26 @@ export const SECTIONS = [
   {
     label: 'Admin',
     items: [
-      { to: '/settings/users', icon: ShieldCheck, label: 'Users & Access', perms: ['users.manage'] },
-      { to: '/settings/roles', icon: KeyRound, label: 'Roles', perms: ['roles.manage'] },
-      { to: '/settings/notifications', icon: BellRing, label: 'Notifications', perms: ['notifications.manage'] },
-      { to: '/settings/mail', icon: Mail, label: 'Mail Server', perms: ['notifications.manage'] },
-      { to: '/settings/audit', icon: History, label: 'Audit Trail', perms: ['audit.view'], feature: 'audit_log' },
+      {
+        label: 'Settings', icon: Settings, group: true, prefix: ['/settings/notifications', '/settings/mail', '/settings/organisation', '/settings/quick-setup'],
+        perms: ['settings.manage', 'notifications.manage'],
+        children: [
+          { to: '/settings', label: 'All Settings', perms: ['settings.manage'] },
+          { to: '/settings/organisation', label: 'Organisation Profile', perms: ['settings.manage'] },
+          { to: '/settings/notifications', label: 'Notifications', perms: ['notifications.manage'] },
+          { to: '/settings/mail', label: 'Mail Server', perms: ['notifications.manage'] },
+        ],
+      },
+      {
+        label: 'Access & Security', icon: ShieldCheck, group: true, prefix: ['/settings/users', '/settings/roles', '/settings/audit'],
+        perms: ['users.manage', 'roles.manage', 'audit.view'],
+        children: [
+          { to: '/settings/users', label: 'Users & Access', perms: ['users.manage'] },
+          { to: '/settings/roles', label: 'Roles & Permissions', perms: ['roles.manage'] },
+          { to: '/settings/audit', label: 'Audit Trail', perms: ['audit.view'], feature: 'audit_log' },
+        ],
+      },
       { to: '/settings/billing', icon: CreditCard, label: 'Plan & Billing', perms: ['billing.manage'] },
-      { to: '/settings', icon: Settings, label: 'Settings', perms: ['settings.manage'], exact: true },
     ],
   },
 ]
@@ -121,7 +134,7 @@ export const PLATFORM_SECTION = {
     { to: '/platform', icon: Globe2, label: 'Organisations', exact: true },
     { to: '/platform/billing', icon: Wallet, label: 'Billing & Revenue' },
     { to: '/platform/plans', icon: Layers, label: 'Plans' },
-    { to: '/platform/mail', icon: Mail, label: 'Mail Server' },
+    { to: '/platform/settings', icon: Settings2, label: 'Platform Settings' },
   ],
 }
 
